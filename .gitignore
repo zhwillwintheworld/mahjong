@@ -1,0 +1,58 @@
+# =====================
+# 后端项目 (im-server)
+# =====================
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.local
+
+# =====================
+# 前端项目 (im-desktop-web)
+# =====================
+
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build output
+dist/
+
+# Test coverage
+coverage/
+
+# =====================
+# 通用
+# =====================
+
+# Mac
+
+# Logs
+npm-debug.log*

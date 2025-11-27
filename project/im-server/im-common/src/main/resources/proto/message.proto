@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package com.sudooom.mahjong.proto;
+
+option java_multiple_files = true;
+option java_package = "com.sudooom.mahjong.proto";
+option java_outer_classname = "MessageProtos";
+
+// 消息类型
+enum MessageType {
+  TEXT = 0;           // 文本消息
+  IMAGE = 1;          // 图片消息
+  FILE = 2;           // 文件消息
+  VOICE = 3;          // 语音消息
+  VIDEO = 4;          // 视频消息
+  SYSTEM = 5;         // 系统消息
+  HEARTBEAT = 6;      // 心跳消息
+}
+
+// 消息
+message Message {
+  string id = 1;                    // 消息 ID
+  string from_user_id = 2;          // 发送者 ID
+  string to_user_id = 3;            // 接收者 ID (点对点)
+  string group_id = 4;              // 群组 ID (群聊)
+  MessageType type = 5;             // 消息类型
+  string content = 6;               // 消息内容
+  int64 timestamp = 7;              // 时间戳
+  map<string, string> ext = 8;      // 扩展字段
+}
+
+// 消息确认
+message MessageAck {
+  string message_id = 1;            // 消息 ID
+  bool success = 2;                 // 是否成功
+  string error_msg = 3;             // 错误消息
+}
+
+// 用户信息
+message UserInfo {
+  string user_id = 1;               // 用户 ID
+  string username = 2;              // 用户名
+  string avatar = 3;                // 头像
+  int32 status = 4;                 // 在线状态 0-离线 1-在线
+}
+
+// 心跳消息
+message Heartbeat {
+  int64 timestamp = 1;              // 时间戳
+}

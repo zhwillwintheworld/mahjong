@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+im:
+  data:
+    mongo:
+      enabled: true
+  
+spring:
+  application:
+    name: im-web
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+      - org.springframework.boot.autoconfigure.mongo.MongoReactiveAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoReactiveDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoReactiveRepositoriesAutoConfiguration
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DATABASE:im}
+      username: ${MONGODB_USERNAME:}
+      password: ${MONGODB_PASSWORD:}
+  webflux:
+    base-path: /api
+
+logging:
+  level:
+    root: INFO
+    com.im.web: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

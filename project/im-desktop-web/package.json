@@ -1,0 +1,41 @@
+{
+  "name": "im-desktop-web",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "update": "pnpm update --latest"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "antd": "^5.22.6",
+    "rsocket-core": "^1.0.3",
+    "rsocket-websocket-client": "^1.0.3",
+    "rsocket-flowable": "^0.0.19",
+    "protobufjs": "^7.4.0",
+    "zustand": "^5.0.2",
+    "react-router-dom": "^7.1.1",
+    "axios": "^1.7.9",
+    "dayjs": "^1.11.13"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7",
+    "eslint": "^9.17.0",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "prettier": "^3.4.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
