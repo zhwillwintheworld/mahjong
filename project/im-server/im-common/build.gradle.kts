@@ -8,6 +8,10 @@ dependencies {
     // Kotlin 核心
     api(libs.bundles.kotlin)
     
+    // Spring 最小依赖 - 用于 @Component 和 @Value 注解
+    api(libs.spring.context)
+    api(libs.spring.boot)
+    
     // Protobuf Kotlin (传递依赖 protobuf-java)
     api(libs.protobuf.kotlin)
     

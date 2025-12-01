@@ -1,26 +1,12 @@
-server:
-  port: 7000
-
-im:
-  data:
-    redis:
-      enabled: true
-  
 spring:
   application:
     name: im-access
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
-      - org.springframework.boot.autoconfigure.mongo.MongoReactiveAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.mongo.MongoReactiveDataAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.mongo.MongoReactiveRepositoriesAutoConfiguration
+  main:
+    web-application-type: none
   rsocket:
     server:
       transport: websocket
-      mapping-path: /rsocket
-      port: 7000
+      port: 8001
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -32,6 +18,9 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
+
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-here-minimum-32-characters-required}
 
 logging:
   level:

@@ -16,11 +16,8 @@ import java.nio.ByteBuffer
  * 消息控制器
  * 处理 RSocket 消息请求
  */
-@Controller
-class MessageController(
-    private val sessionManager: SessionManager,
-    private val messagePushService: MessagePushService
-) : Loggable{
+@Controller("api")
+class MessageController{
     
 
     /**
@@ -28,9 +25,9 @@ class MessageController(
      */
     @MessageMapping("connect")
     suspend fun connect(
-        @Payload userId: String,
+        @Payload userId: Mono<String>,
         requester: RSocketRequester
-    ): Mono<String> {
+    ){
         logger.info("用户连接: $userId")
         
         return Mono.fromCallable {

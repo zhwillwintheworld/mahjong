@@ -241,7 +241,7 @@ UI 组件库:
 ### 4.1 后端项目结构（Kotlin 2.2）
 
 ```
-im-server/
+project/im-server/
 ├── build.gradle.kts                  # 根 Gradle 配置 (Kotlin DSL)
 ├── settings.gradle.kts               # 多模块配置 (Kotlin DSL)
 ├── gradle.properties                 # Gradle 属性
@@ -254,124 +254,77 @@ im-server/
 ├── im-common/                        # 公共模块
 │   ├── build.gradle.kts
 │   └── src/main/
-│       ├── kotlin/com/im/common/
+│       ├── kotlin/com/sudooom/mahjong/common/
+│       │   ├── config/              # 公共配置
+│       │   │   └── JwtConfig.kt
 │       │   ├── constant/            # 常量定义
 │       │   │   └── Constants.kt
 │       │   ├── enums/               # 枚举定义
 │       │   │   └── MessageType.kt
 │       │   ├── exception/           # 异常定义
-│       │   │   ├── IMException.kt
-│       │   │   └── ErrorCode.kt
+│       │   │   └── IMException.kt
 │       │   ├── extension/           # Kotlin 扩展函数
 │       │   │   ├── StringExt.kt
-│       │   │   ├── FlowExt.kt
-│       │   │   └── CoroutineExt.kt
-│       │   ├── util/                # 工具类
-│       │   │   ├── SnowflakeIdGenerator.kt
-│       │   │   └── JsonUtil.kt
-│       │   ├── proto/               # Protobuf Kotlin 生成代码
-│       │   │   └── MessageProtos.kt
-│       │   ├── dsl/                 # DSL 构建器
-│       │   │   └── MessageDsl.kt
-│       │   └── model/               # 通用数据模型
-│       │       └── Result.kt
+│       │   │   └── FlowExt.kt
+│       │   ├── log/                 # 日志工具
+│       │   │   └── Loggable.kt
+│       │   ├── model/               # 通用数据模型
+│       │   │   └── Result.kt
+│       │   └── util/                # 工具类
+│       │       ├── SnowflakeIdGenerator.kt
+│       │       └── JwtUtil.kt
 │       └── resources/
 │           └── proto/               # .proto 文件
 │               └── message.proto
 │
+├── im-data/                          # 数据访问层模块
+│   ├── build.gradle.kts
+│   └── src/main/
+│       └── kotlin/com/sudooom/mahjong/data/
+│           └── mongo/
+│               ├── entity/          # MongoDB 实体类
+│               └── repository/      # Repository 接口
+│
 ├── im-access/                        # 接入层模块
 │   ├── build.gradle.kts
 │   └── src/main/
-│       ├── kotlin/com/im/access/
+│       ├── kotlin/com/sudooom/mahjong/access/
 │       │   ├── AccessApplication.kt # 启动类
 │       │   ├── config/              # 配置类
-│       │   │   ├── RSocketConfig.kt
-│       │   │   ├── RedisConfig.kt
-│       │   │   └── CoroutineConfig.kt
+│       │   │   └── RSocketConfig.kt
 │       │   ├── controller/          # RSocket Controller
-│       │   │   ├── MessageController.kt
-│       │   │   └── HeartbeatController.kt
+│       │   │   └── MessageController.kt
 │       │   ├── service/             # 业务服务
-│       │   │   ├── ConnectionService.kt
-│       │   │   ├── MessagePushService.kt
-│       │   │   └── impl/
-│       │   ├── handler/             # 消息处理器
-│       │   │   └── MessageHandler.kt
-│       │   ├── session/             # 会话管理
-│       │   │   ├── UserSession.kt
-│       │   │   └── SessionManager.kt
-│       │   └── extension/           # 模块扩展函数
-│       │       └── RSocketExt.kt
+│       │   │   └── MessagePushService.kt
+│       │   └── session/             # 会话管理
+│       │       ├── UserSession.kt
+│       │       └── SessionManager.kt
 │       └── resources/
 │           └── application.yml
 │
 ├── im-logic/                         # 逻辑层模块
 │   ├── build.gradle.kts
 │   └── src/main/
-│       ├── kotlin/com/im/logic/
+│       ├── kotlin/com/sudooom/mahjong/logic/
 │       │   ├── LogicApplication.kt  # 启动类
-│       │   ├── config/              # 配置类
-│       │   │   ├── RSocketConfig.kt
-│       │   │   ├── MongoConfig.kt
-│       │   │   ├── RedisConfig.kt
-│       │   │   └── CoroutineConfig.kt
-│       │   ├── service/             # 业务服务
-│       │   │   ├── MessageService.kt
-│       │   │   ├── UserService.kt
-│       │   │   ├── GroupService.kt
-│       │   │   └── impl/
-│       │   ├── repository/          # 数据访问层
-│       │   │   ├── MessageRepository.kt
-│       │   │   ├── UserRepository.kt
-│       │   │   └── GroupRepository.kt
-│       │   ├── model/               # 数据模型
-│       │   │   ├── entity/          # 实体类
-│       │   │   │   ├── Message.kt
-│       │   │   │   ├── User.kt
-│       │   │   │   └── Group.kt
-│       │   │   └── dto/             # DTO
-│       │   ├── handler/             # RSocket 处理器
-│       │   │   └── LogicMessageHandler.kt
-│       │   ├── router/              # 消息路由
-│       │   │   └── MessageRouter.kt
-│       │   └── extension/           # 模块扩展函数
-│       │       ├── FlowExt.kt
-│       │       └── MongoExt.kt
+│       │   └── service/             # 业务服务
+│       │       └── MessageService.kt
 │       └── resources/
 │           └── application.yml
 │
 └── im-web/                           # Web 接口模块
     ├── build.gradle.kts
     └── src/main/
-        ├── kotlin/com/im/web/
+        ├── kotlin/com/sudooom/mahjong/web/
         │   ├── WebApplication.kt    # 启动类
         │   ├── config/              # 配置类
-        │   │   ├── WebFluxConfig.kt
-        │   │   ├── RouterConfig.kt  # Kotlin DSL 路由
         │   │   └── CorsConfig.kt
-        │   ├── controller/          # REST Controller (注解式)
-        │   │   ├── UserController.kt
-        │   │   ├── GroupController.kt
-        │   │   └── MessageController.kt
-        │   ├── handler/             # Handler (函数式路由)
-        │   │   ├── UserHandler.kt
-        │   │   └── MessageHandler.kt
-        │   ├── dto/                 # 数据传输对象
-        │   │   ├── request/
-        │   │   │   ├── LoginRequest.kt
-        │   │   │   └── SendMessageRequest.kt
-        │   │   └── response/
-        │   │       ├── ApiResponse.kt
-        │   │       └── MessageResponse.kt
-        │   ├── service/             # 业务服务
-        │   │   └── ApiService.kt
-        │   ├── filter/              # 过滤器
-        │   │   └── AuthFilter.kt
-        │   └── extension/           # 模块扩展函数
-        │       └── ServerRequestExt.kt
+        │   └── dto/                 # 数据传输对象
+        │       └── response/
         └── resources/
             └── application.yml
 ```
+
 
 ### 4.2 前端项目结构
 

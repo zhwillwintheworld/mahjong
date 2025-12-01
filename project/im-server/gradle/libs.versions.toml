@@ -31,6 +31,10 @@ kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-co
 kotlin-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "kotlin-coroutines" }
 kotlin-coroutines-jdk9 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk9", version.ref = "kotlin-coroutines" }
 
+# Spring Core (最小依赖)
+spring-context = { module = "org.springframework:spring-context" }
+spring-boot = { module = "org.springframework.boot:spring-boot" }
+
 # Spring Boot Starters (版本由 Spring Boot 管理)
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
 spring-boot-starter-rsocket = { module = "org.springframework.boot:spring-boot-starter-rsocket" }
