@@ -8,8 +8,6 @@ plugins {
 dependencies {
     // Spring Boot BOM
     implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.0"))
-    implementation("org.springframework.boot:spring-boot-autoconfigure")
-
     // Common 模块
     api(project(":im-common"))
     

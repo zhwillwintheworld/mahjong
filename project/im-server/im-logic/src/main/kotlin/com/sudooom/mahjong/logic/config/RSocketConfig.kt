@@ -1,9 +1,9 @@
-package com.sudooom.mahjong.access.config
+package com.sudooom.mahjong.logic.config
 
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.messaging.rsocket.RSocketStrategies
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler
-import org.springframework.context.annotation.Bean
 
 /**
  * RSocket 配置
