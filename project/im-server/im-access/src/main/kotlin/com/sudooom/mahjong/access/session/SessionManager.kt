@@ -13,13 +13,13 @@ import org.springframework.stereotype.Component
 class SessionManager : Loggable {
 
     // userId -> UserSession
-    private val sessions = ConcurrentHashMap<String, UserSession>()
+    private val sessions = ConcurrentHashMap<RSocketRequester, UserSession>()
 
     // sessionId -> userId
     private val sessionIdMap = ConcurrentHashMap<String, String>()
 
     /** 创建会话 */
-    fun createSession(userId: String, requester: RSocketRequester): UserSession {
+    fun createSession(userId: String, de,requester: RSocketRequester): UserSession {
         val sessionId = IdGenerator.nextIdString()
         val session = UserSession(userId, sessionId, requester)
 

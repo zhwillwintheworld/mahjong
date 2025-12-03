@@ -10,8 +10,9 @@ import java.time.Instant
  * 用户会话
  */
 data class UserSession(
-    val userId: String,
     val sessionId: String,
+    val deviceId: String,
+    val userId: String,
     val requester: RSocketRequester,
     val connectedAt: Instant = Instant.now(),
     var lastHeartbeat: Instant = Instant.now()

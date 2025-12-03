@@ -2,6 +2,7 @@ plugins {
     id("java-library")
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.protobuf)
+    alias(libs.plugins.spring.dependency.management)
 }
 
 dependencies {
@@ -28,6 +29,12 @@ dependencies {
     
     // SLF4J - 日志接口（不依赖具体实现）
     api(libs.slf4j.api)
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
+    }
 }
 
 protobuf {
