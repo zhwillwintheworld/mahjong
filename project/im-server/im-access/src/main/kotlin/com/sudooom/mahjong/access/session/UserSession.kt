@@ -13,17 +13,22 @@ data class UserSession(
     val sessionId: String,
     val deviceId: String,
     val userId: String,
+    val platform: String,
     val requester: RSocketRequester,
     val connectedAt: Instant = Instant.now(),
     var lastHeartbeat: Instant = Instant.now()
 ) {
     private val _messageFlow = MutableSharedFlow<ByteArray>(replay = 0)
     val messageFlow: SharedFlow<ByteArray> = _messageFlow.asSharedFlow()
-    
+
     suspend fun sendMessage(message: ByteArray) {
         _messageFlow.emit(message)
     }
-    
+
+    fun getMessageFlow(): MutableSharedFlow<ByteArray> {
+        return _messageFlow
+    }
+
     fun updateHeartbeat() {
         lastHeartbeat = Instant.now()
     }

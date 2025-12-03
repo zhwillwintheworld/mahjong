@@ -25,6 +25,7 @@ class JwtUtil(
     companion object {
         const val CLAIM_USER_ID = "userId"
         const val CLAIM_DEVICE_ID = "deviceId"
+        const val CLAIM_PLATFORM = "platform"
     }
 
     // 缓存的 SecretKey，在构造时生成
@@ -86,28 +87,6 @@ class JwtUtil(
             .parseSignedClaims(token)  // 自动验证过期时间
             .payload
     }
-
-    /**
-     * 从 Token 中获取用户 ID
-     * @param token JWT Token
-     * @return 用户 ID
-     */
-    fun getUserId(token: String): String {
-        try{
-            return parseToken(token).get(CLAIM_USER_ID, String::class.java)
-        } catch (_: Exception) {
-            throw IllegalArgumentException("Invalid token")
-        }
-    }
-    
-    /**
-     * 从 Token 中获取设备 ID
-     * @param token JWT Token
-     * @return 设备 ID，如果不存在则返回 null
-     */
-    fun getDeviceId(token: String): String? {
-        return parseToken(token).get(CLAIM_DEVICE_ID, String::class.java)
-    }
     
     /**
      * 从 Token 中获取自定义 claim
@@ -115,8 +94,8 @@ class JwtUtil(
      * @param claimKey claim 的键
      * @return claim 的值
      */
-    fun <T> getClaim(token: String, claimKey: String, requiredType: Class<T>): T? {
-        return parseToken(token).get(claimKey, requiredType)
+    fun <T> getClaim(claims: Claims, claimKey: String, requiredType: Class<T>): T {
+        return claims.get(claimKey, requiredType) ?: throw IllegalArgumentException("Claim $claimKey not found")
     }
 
     /**
@@ -131,20 +110,6 @@ class JwtUtil(
             true
         } catch (_: Exception) {
             false
-        }
-    }
-
-    /**
-     * 检查 Token 是否过期
-     * @param token JWT Token
-     * @return true 如果已过期
-     */
-    fun isTokenExpired(token: String): Boolean {
-        return try {
-            val claims = parseToken(token)
-            claims.expiration.before(Date())
-        } catch (_: Exception) {
-            true
         }
     }
 }

@@ -1,11 +1,8 @@
 package com.sudooom.mahjong.access.controller
 
-import com.sudooom.mahjong.access.service.LoginService
+import com.sudooom.mahjong.access.service.ConnectService
 import com.sudooom.mahjong.access.session.SessionManager
-import com.sudooom.mahjong.access.service.MessagePushService
-import com.sudooom.mahjong.common.annotation.Loggable
 import kotlinx.coroutines.flow.Flow
-import org.slf4j.LoggerFactory
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.messaging.rsocket.RSocketRequester
@@ -20,7 +17,7 @@ import java.nio.ByteBuffer
  */
 @Controller("api")
 class MessageController(
-    private val loginService: LoginService
+    private val connectService: ConnectService,
 ){
     
 
@@ -32,7 +29,12 @@ class MessageController(
         @Payload token: Mono<String>,
         requester: RSocketRequester
     ){
-        loginService.login(token, requester)
+        connectService.login(token, requester)
+    }
+
+    @MessageMapping("im")
+    fun im(@Payload messages: Flow<ByteBuffer>, requester: RSocketRequester): Flow<ByteBuffer> {
+
     }
     
 

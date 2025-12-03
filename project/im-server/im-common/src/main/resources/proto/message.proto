@@ -16,6 +16,7 @@ enum Platform {
   IOS = 2;
   WEB = 3;
   DESKTOP = 4;
+  WECHAT = 5;
 }
 
 enum ChatType {
@@ -23,6 +24,7 @@ enum ChatType {
   PRIVATE = 1; // 私聊
   GROUP = 2;   // 群聊
   SYSTEM = 3;  // 系统通知
+  MAHJONG = 4; // 麻将指令
 }
 
 enum MsgType {
