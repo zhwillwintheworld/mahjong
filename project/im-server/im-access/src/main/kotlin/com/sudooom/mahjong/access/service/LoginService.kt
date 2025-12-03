@@ -18,7 +18,7 @@ class LoginService(
         
         // 验证 token
         if (!validateToken(tokenValue)) {
-            throw AuthenticationException("Invalid token")
+            throw IllegalArgumentException("Token is wrong")
         }
         
         // TODO: 处理登录成功后的逻辑
@@ -30,5 +30,3 @@ class LoginService(
         return jwtUtil.validateToken(token)
     }
 }
-
-class AuthenticationException(message: String) : RuntimeException(message)
