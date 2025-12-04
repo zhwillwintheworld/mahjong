@@ -1,6 +1,6 @@
 package com.sudooom.mahjong.core.connection
 
-import com.sudooom.mahjong.common.log.Loggable
+import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.core.config.BrokerConnectionProperties
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
