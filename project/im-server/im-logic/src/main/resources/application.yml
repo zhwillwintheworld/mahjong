@@ -2,6 +2,10 @@ server:
   port: 7001
 
 im:
+  broker:
+    host: ${BROKER_HOST:localhost}
+    port: ${BROKER_PORT:7000}
+    instanceType: LOGIC
   data:
     redis:
       enabled: true

@@ -19,6 +19,12 @@ spring:
           max-idle: 8
           min-idle: 0
 
+im:
+  broker:
+    host: ${BROKER_HOST:localhost}
+    port: ${BROKER_PORT:7000}
+    instanceType: ACCESS
+
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-here-minimum-32-characters-required}
 

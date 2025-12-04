@@ -6,33 +6,35 @@ import java.time.Duration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.codec.protobuf.ProtobufDecoder
-import org.springframework.http.codec.protobuf.ProtobufEncoder
 import org.springframework.messaging.rsocket.RSocketRequester
 import org.springframework.messaging.rsocket.RSocketStrategies
+import org.springframework.util.MimeType
 import reactor.util.retry.Retry
 
-/** Broker 连接配置 在应用启动时自动连接到 Broker */
+/**
+ * Broker 连接配置 在应用启动时自动连接到 Broker
+ *
+ * 连接使用默认的二进制 encoder/decoder，不解析 payload 内容
+ */
 @Configuration
 @EnableConfigurationProperties(BrokerConnectionProperties::class)
 class BrokerConnectionConfig(
         private val properties: BrokerConnectionProperties,
 ) {
 
+    /** Broker 连接专用的 RSocketStrategies 使用默认的二进制 encoder/decoder，不需要 protobuf */
     @Bean
-    fun rSocketStrategies(): RSocketStrategies {
-        return RSocketStrategies.builder()
-                .encoders { it.add(ProtobufEncoder()) }
-                .decoders { it.add(ProtobufDecoder()) }
-                .build()
+    fun brokerRSocketStrategies(): RSocketStrategies {
+        return RSocketStrategies.builder().build()
     }
 
+    /** Broker RSocket Requester 配置 setupRoute 和 setupMetadata，使用默认二进制策略 */
     @Bean
     fun brokerRSocketRequester(
-            rSocketStrategies: RSocketStrategies,
-            builder: RSocketRequester.Builder,
+            brokerRSocketStrategies: RSocketStrategies,
     ): RSocketRequester {
-        return builder.rsocketStrategies(rSocketStrategies)
+        return RSocketRequester.builder()
+                .rsocketStrategies(brokerRSocketStrategies)
                 .rsocketConnector { connector: RSocketConnector ->
                     connector
                             .reconnect(
@@ -48,6 +50,11 @@ class BrokerConnectionConfig(
                                     Duration.ofMillis(properties.keepAliveMaxLifetimeMs),
                             )
                 }
+                .setupRoute(properties.setupRoute)
+                .setupMetadata(
+                        "${properties.instanceType}:${properties.instanceId}",
+                        MimeType.valueOf("text/plain")
+                )
                 .tcp(properties.host, properties.port)
     }
 }
