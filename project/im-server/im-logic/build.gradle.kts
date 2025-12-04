@@ -6,8 +6,8 @@ plugins {
 }
 
 dependencies {
-    // 依赖 Common 模块
-    implementation(project(":im-common"))
+    // 依赖 Core 模块 (Broker 连接管理)
+    implementation(project(":im-core"))
     
     // Kotlin
     implementation(libs.bundles.kotlin)

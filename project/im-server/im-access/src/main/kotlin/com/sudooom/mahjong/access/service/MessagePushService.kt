@@ -13,17 +13,17 @@ import org.springframework.stereotype.Service
  */
 @Service
 class MessagePushService(
-    private val sessionManager: SessionManager
-): Loggable {
-    
+    private val sessionManager: SessionManager,
+) : Loggable {
+
     private val scope = CoroutineScope(Dispatchers.Default)
-    
+
     /**
      * 推送消息给指定用户
      */
     suspend fun pushToUser(userId: String, message: ByteArray): Boolean {
         val session = sessionManager.getSession(userId)
-        
+
         return if (session != null) {
             try {
                 session.sendMessage(message)
@@ -38,7 +38,7 @@ class MessagePushService(
             false
         }
     }
-    
+
     /**
      * 推送消息给多个用户
      */
@@ -49,7 +49,7 @@ class MessagePushService(
             }
         }
     }
-    
+
     /**
      * 广播消息给所有在线用户
      */

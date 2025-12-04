@@ -1,7 +1,7 @@
 plugins {
     id("java-library")
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.protobuf)
+    alias(libs.plugins.wire)
     alias(libs.plugins.spring.dependency.management)
 }
 
@@ -13,8 +13,8 @@ dependencies {
     api(libs.spring.context)
     api(libs.spring.boot)
     
-    // Protobuf Kotlin (传递依赖 protobuf-java)
-    api(libs.protobuf.kotlin)
+    // Wire Runtime
+    api(libs.wire.runtime)
     
     // Jackson Kotlin - JSON 序列化
     api(libs.jackson.module.kotlin)
@@ -37,17 +37,15 @@ dependencyManagement {
     }
 }
 
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:4.30.2"
+wire {
+    sourcePath {
+        srcDir("src/main/resources/proto")
     }
-    // 默认会生成 Java 代码，protobuf-kotlin 会提供 Kotlin 扩展
-}
-
-sourceSets {
-    main {
-        proto {
-            srcDir("src/main/resources/proto")
-        }
+    
+    kotlin {
+        // 默认生成 builder 模式，如果喜欢数据类可以配置 android = true (虽然名字叫 android 但其实是生成 data class)
+        // 或者使用 javaInterop = true 等
+        // 这里使用默认配置，生成 Kotlin 类
+        out = "src/main/kotlin"
     }
 }

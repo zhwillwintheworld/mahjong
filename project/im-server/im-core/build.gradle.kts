@@ -5,25 +5,25 @@ plugins {
     alias(libs.plugins.spring.dependency.management)
 }
 
-dependencies {
-    // 依赖 Core 模块 (Broker 连接管理)
-    implementation(project(":im-core"))
-    
-    // Kotlin
-    implementation(libs.bundles.kotlin)
-    
-    // Spring Reactive    // Data Modules
-    api(project(":im-data"))
-    
-    // RSocket
-    api(libs.spring.boot.starter.rsocket)
-    
-    // Netty 由 WebFlux 自动引入，无需手动添加
-    
-    // 测试
-    testImplementation(libs.bundles.test)
+// im-core 是库模块，不需要打包成可执行 jar
+tasks.bootJar {
+    enabled = false
 }
 
-springBoot {
-    mainClass.set("com.sudooom.mahjong.access.AccessApplicationKt")
+tasks.jar {
+    enabled = true
+}
+
+dependencies {
+    // 依赖 Common 模块
+    api(project(":im-common"))
+
+    // Kotlin
+    implementation(libs.bundles.kotlin)
+
+    // RSocket Client
+    api(libs.spring.boot.starter.rsocket)
+
+    // 测试
+    testImplementation(libs.bundles.test)
 }
