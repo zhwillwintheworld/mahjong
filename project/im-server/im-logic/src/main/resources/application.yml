@@ -1,47 +1,16 @@
-server:
-  port: 7001
-
-im:
-  broker:
-    host: ${BROKER_HOST:localhost}
-    port: ${BROKER_PORT:7000}
-    instanceType: LOGIC
-  data:
-    redis:
-      enabled: true
-    mongo:
-      enabled: true
-  
+# im-logic 基础配置
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+    group:
+      dev: common,common-dev
+      test: common,common-test
+      prod: common,common-prod
   application:
     name: im-logic
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
-      - org.springframework.boot.autoconfigure.mongo.MongoReactiveAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.mongo.MongoReactiveDataAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.mongo.MongoReactiveRepositoriesAutoConfiguration
+  main:
+    web-application-type: none
   rsocket:
     server:
       transport: tcp
-      port: 7001
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      database: 0
-    mongodb:
-      host: ${MONGODB_HOST:localhost}
-      port: ${MONGODB_PORT:27017}
-      database: ${MONGODB_DATABASE:im}
-      username: ${MONGODB_USERNAME:}
-      password: ${MONGODB_PASSWORD:}
-
-logging:
-  level:
-    root: INFO
-    com.im.logic: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+      port: 8883

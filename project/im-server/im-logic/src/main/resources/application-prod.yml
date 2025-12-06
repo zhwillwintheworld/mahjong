@@ -1,0 +1,14 @@
+# im-logic 生产环境配置
+
+spring:
+  rsocket:
+    server:
+      port: ${LOGIC_RSOCKET_PORT:7001}
+
+server:
+  port: ${LOGIC_HTTP_PORT:7001}
+
+logging:
+  level:
+    root: WARN
+    com.sudooom.mahjong.logic: INFO

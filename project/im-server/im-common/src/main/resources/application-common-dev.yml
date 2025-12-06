@@ -1,0 +1,26 @@
+# 公共开发环境配置
+spring:
+  data:
+    redis:
+      host: 172.16.233.190
+      port: 6379
+      password: xhxxygwl
+      database: 1
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+jwt:
+  secret: 5d41402abc4b2a76b9719d911017c5922798595a3885367170a98d8633785759
+
+im:
+  broker:
+    host: localhost
+    port: 8881
+    instanceType: ${spring.application.name}
+
+logging:
+  level:
+    root: INFO

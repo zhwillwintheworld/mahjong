@@ -1,4 +1,11 @@
+# im-access 基础配置
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+    group:
+      dev: common,common-dev
+      test: common,common-test
+      prod: common,common-prod
   application:
     name: im-access
   main:
@@ -6,31 +13,4 @@ spring:
   rsocket:
     server:
       transport: websocket
-      port: 8001
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      database: 0
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-
-im:
-  broker:
-    host: ${BROKER_HOST:localhost}
-    port: ${BROKER_PORT:7000}
-    instanceType: ACCESS
-
-jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-here-minimum-32-characters-required}
-
-logging:
-  level:
-    root: INFO
-    com.im.access: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+      port: 8882

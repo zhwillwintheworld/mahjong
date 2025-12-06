@@ -1,0 +1,11 @@
+# im-access 生产环境配置
+
+spring:
+  rsocket:
+    server:
+      port: ${ACCESS_RSOCKET_PORT:8001}
+
+logging:
+  level:
+    root: WARN
+    com.sudooom.mahjong.access: INFO

@@ -1,0 +1,14 @@
+# im-broker 生产环境配置
+
+spring:
+  rsocket:
+    server:
+      port: ${BROKER_RSOCKET_PORT:7000}
+
+server:
+  port: ${BROKER_HTTP_PORT:8082}
+
+logging:
+  level:
+    root: WARN
+    com.sudooom.mahjong.broker: INFO

@@ -1,0 +1,32 @@
+# 公共测试环境配置
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 1
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+    mongodb:
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DATABASE:im_test}
+      username: ${MONGODB_USERNAME:}
+      password: ${MONGODB_PASSWORD:}
+
+jwt:
+  secret: ${JWT_SECRET:test-secret-key-for-testing-only-32chars}
+
+im:
+  broker:
+    host: ${BROKER_HOST:localhost}
+    port: ${BROKER_PORT:7000}
+
+logging:
+  level:
+    root: INFO

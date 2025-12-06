@@ -1,10 +1,18 @@
-server:
-  port: 8082
+# im-broker 基础配置
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+    group:
+      dev: common,common-dev
+      test: common,common-test
+      prod: common,common-prod
   application:
     name: im-broker
+  main:
+    web-application-type: none
   rsocket:
     server:
-      port: 7002
       transport: tcp
+      port: 88881
+

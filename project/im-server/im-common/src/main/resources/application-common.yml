@@ -1,0 +1,6 @@
+# 公共基础配置 - 所有环境共享的结构和默认值
+
+# 日志公共配置
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,6 @@
+# im-logic 开发环境配置
+
+logging:
+  level:
+    root: INFO
+    com.sudooom.mahjong.logic: DEBUG

@@ -1,0 +1,6 @@
+# im-web 测试环境配置
+
+logging:
+  level:
+    root: INFO
+    com.sudooom.mahjong.web: DEBUG

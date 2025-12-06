@@ -159,3 +159,27 @@ uniapp编写的移动端Web应用，针对移动设备浏览器优化的用户�
 - 样式方案：优先使用Tailwind CSS，只有在Tailwind难以实现的情况下才使用自定义CSS
 - 状态管理：React Context API + Zustand
 - 构建工具：Create React App (CRA)
+
+### Kotlin 代码格式化规范
+生成 Kotlin 代码时，必须遵循以下格式化规则：
+- **基础缩进**：4 空格
+- **续行缩进**：4 空格（与基础缩进相同）
+- **构造函数参数换行**：每个参数一行，缩进 4 空格
+- **链式调用换行**：每个 `.` 操作一行，缩进 4 空格
+- **函数参数换行**：每个参数一行，缩进 4 空格
+- **空行**：不包含任何空格或缩进字符
+- **行尾**：不包含多余空格
+示例：
+```kotlin
+class ExampleClass(
+    private val param1: String,
+    private val param2: Int,
+) {
+    fun chainExample() {
+        someObject
+            .firstCall()
+            .secondCall()
+            .thirdCall()
+    }
+}
+```
