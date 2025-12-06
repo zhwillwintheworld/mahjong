@@ -1,37 +1,33 @@
 package com.sudooom.mahjong.core.connection
 
 import com.sudooom.mahjong.common.annotation.Loggable
-import com.sudooom.mahjong.common.route.MessageFrameCodec
-import com.sudooom.mahjong.common.route.RoutedMessage
+import com.sudooom.mahjong.common.proto.ServerMessage
 import com.sudooom.mahjong.core.config.BrokerConnectionProperties
 import com.sudooom.mahjong.core.holder.BrokerInboundHolder
 import com.sudooom.mahjong.core.holder.BrokerOutboundHolder
-import io.netty.buffer.ByteBuf
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
+import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.reactive.asPublisher
 import org.springframework.messaging.rsocket.RSocketRequester
 import org.springframework.stereotype.Component
 import reactor.core.Disposable
-import reactor.core.publisher.Flux
+import reactor.util.retry.Retry
 
 /**
  * Broker 连接管理器 负责管理与 Broker 的 RSocket 连接和 request-channel 通信
  *
- * 使用 MessageFrameCodec 将路由信息和消息内容打包成单个 ByteBuf： [metadataLength: 2 bytes][metadata: N
- * bytes][payload: M bytes]
+ * 连接重连逻辑在 RSocketConnector 中配置 Channel 重建逻辑通过 retryWhen 实现
  */
 @Component
 class BrokerConnectionManager(
-        private val brokerRSocketRequester: RSocketRequester,
+        private val brokerRSocketRequesterBuilder: RSocketRequester.Builder,
         private val properties: BrokerConnectionProperties,
 ) : Loggable {
 
     private val connected = AtomicBoolean(false)
-    private val disposableRef = AtomicReference<Disposable?>()
+    private val requesterRef = AtomicReference<RSocketRequester?>()
     private val channelDisposableRef = AtomicReference<Disposable?>()
 
     /** 应用启动时自动连接 Broker 并建立 request-channel */
@@ -39,82 +35,75 @@ class BrokerConnectionManager(
     fun connect() {
         logger.info("Connecting to Broker at ${properties.host}:${properties.port}...")
 
-        val disposable =
-                brokerRSocketRequester
-                        .rsocketClient()
-                        .source()
-                        .doOnNext { rSocket ->
+        // 在 PostConstruct 中创建 RSocketRequester，建立实际连接
+        val requester = brokerRSocketRequesterBuilder.tcp(properties.host, properties.port)
+
+        requesterRef.set(requester)
+
+        // 直接建立 request-channel，在 channel 上处理重试逻辑
+        establishChannel(requester)
+    }
+
+    /** 建立 request-channel 连接 使用 retryWhen 在 channel 断开时自动重建 */
+    private fun establishChannel(requester: RSocketRequester) {
+        logger.info("Establishing request-channel to ${properties.channelRoute}...")
+
+        val channelDisposable =
+                requester
+                        .route(properties.channelRoute)
+                        .data(BrokerOutboundHolder.getMessageFlow())
+                        .retrieveFlux(ServerMessage::class.java)
+                        .doOnSubscribe {
                             connected.set(true)
-                            logger.info(
-                                    "Successfully connected to Broker at ${properties.host}:${properties.port}"
-                            )
-
-                            // 建立 request-channel 连接
-                            establishChannel()
-
-                            // 监听连接关闭事件
-                            rSocket.onClose()
-                                    .doOnTerminate {
-                                        connected.set(false)
-                                        logger.warn("Connection to Broker closed")
-                                        channelDisposableRef.get()?.dispose()
-                                    }
-                                    .subscribe()
+                            logger.info("Request-channel established successfully")
+                        }
+                        .doOnNext { inbound ->
+                            // 将接收到的消息发布到 inboundHolder
+                            if (!BrokerInboundHolder.publish(inbound)) {
+                                logger.warn("Failed to publish message, buffer full")
+                            }
                         }
                         .doOnError { error ->
                             connected.set(false)
-                            logger.error("Failed to connect to Broker: ${error.message}", error)
-                        }
-                        .subscribe()
-
-        disposableRef.set(disposable)
-    }
-
-    /** 建立 request-channel 连接 */
-    private fun establishChannel() {
-        logger.info("Establishing request-channel to ${properties.channelRoute}...")
-
-        // 将 RoutedMessage Flow 转换为打包的 ByteBuf Flux
-        val outboundFrames: Flux<ByteBuf> =
-                Flux.from(
-                        BrokerOutboundHolder.getFlow()
-                                .map { routedMessage -> encodeFrame(routedMessage) }
-                                .asPublisher()
-                )
-
-        val channelDisposable =
-                brokerRSocketRequester
-                        .route(properties.channelRoute)
-                        .data(outboundFrames)
-                        .retrieveFlux(ByteBuf::class.java)
-                        .doOnNext { inbound ->
-                            // 将接收到的消息发布到 inboundHolder
-                            BrokerInboundHolder.emit(inbound)
-                        }
-                        .doOnError { error ->
                             logger.error("Request-channel error: ${error.message}", error)
                         }
-                        .doOnComplete { logger.warn("Request-channel completed") }
+                        .doOnComplete {
+                            connected.set(false)
+                            logger.warn("Request-channel completed")
+                        }
+                        .retryWhen(
+                                Retry.backoff(
+                                                if (properties.maxReconnectAttempts < 0)
+                                                        Long.MAX_VALUE
+                                                else properties.maxReconnectAttempts.toLong(),
+                                                Duration.ofMillis(properties.reconnectIntervalMs)
+                                        )
+                                        .maxBackoff(
+                                                Duration.ofMillis(properties.maxReconnectIntervalMs)
+                                        )
+                                        .doBeforeRetry { signal ->
+                                            logger.info(
+                                                    "Retrying request-channel, attempt ${signal.totalRetries() + 1}..."
+                                            )
+                                        }
+                        )
                         .subscribe()
 
         channelDisposableRef.set(channelDisposable)
-        logger.info("Request-channel established successfully")
     }
 
-    /**
-     * 将 RoutedMessage 打包为 ByteBuf 格式: [metadataLength: 2 bytes][metadata: N bytes][payload: M
-     * bytes]
-     */
-    private fun encodeFrame(message: RoutedMessage): ByteBuf {
-        return MessageFrameCodec.encode(message)
-    }
+    /** 获取当前连接状态 */
+    fun isConnected(): Boolean = connected.get()
+
+    /** 获取 RSocketRequester（可能为 null） */
+    fun getRequester(): RSocketRequester? = requesterRef.get()
 
     /** 应用关闭时断开连接 */
     @PreDestroy
     fun disconnect() {
         logger.info("Disconnecting from Broker...")
         channelDisposableRef.get()?.dispose()
-        disposableRef.get()?.dispose()
+        requesterRef.get()?.rsocketClient()?.dispose()
         connected.set(false)
     }
 }

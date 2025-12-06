@@ -14,7 +14,7 @@ data class RouteMetadata(val type: RouteType, val routeKey: String) {
         /** 创建用户路由 */
         fun user(userId: String) = RouteMetadata(RouteType.USER, userId)
 
-        /** 创建广播路由 */
-        fun broadcast() = RouteMetadata(RouteType.BROADCAST, "")
+        /** 创建逻辑路由 */
+        fun logic(accessId: String) = RouteMetadata(RouteType.LOGIC, accessId)
     }
 }

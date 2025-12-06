@@ -22,8 +22,8 @@ import reactor.util.retry.Retry
 @EnableConfigurationProperties(BrokerConnectionProperties::class)
 @ComponentScan("com.sudooom.mahjong.common")
 class BrokerConnectionConfig(
-    private val properties: BrokerConnectionProperties,
-    private val jwtUtil: JwtUtil,
+        private val properties: BrokerConnectionProperties,
+        private val jwtUtil: JwtUtil,
 ) {
 
     /** Broker 连接专用的 RSocketStrategies 使用默认的二进制 encoder/decoder，不需要 protobuf */
@@ -32,41 +32,43 @@ class BrokerConnectionConfig(
         return RSocketStrategies.builder().build()
     }
 
-    /** Broker RSocket Requester 配置 setupRoute 和 setupData（JWT），使用默认二进制策略 */
+    /**
+     * 预配置的 RSocketRequester.Builder Bean 包含重连策略、keepAlive 配置和认证信息 实际连接在 BrokerConnectionManager 的
+     * @PostConstruct 中建立
+     */
     @Bean
-    fun brokerRSocketRequester(
-        brokerRSocketStrategies: RSocketStrategies,
-    ): RSocketRequester {
+    fun brokerRSocketRequesterBuilder(
+            brokerRSocketStrategies: RSocketStrategies,
+    ): RSocketRequester.Builder {
         // 生成 JWT，包含 instanceType 和 instanceId
         val token =
-            jwtUtil.generateServerToken(
-                instanceType = properties.instanceType,
-                instanceId = properties.instanceId
-            )
+                jwtUtil.generateServerToken(
+                        instanceType = properties.instanceType,
+                        instanceId = properties.instanceId
+                )
 
         return RSocketRequester.builder()
-            .rsocketStrategies(brokerRSocketStrategies)
-            .rsocketConnector { connector: RSocketConnector ->
-                connector
-                    .reconnect(
-                        Retry.backoff(
-                            if (properties.maxReconnectAttempts < 0) Long.MAX_VALUE
-                            else properties.maxReconnectAttempts.toLong(),
-                            Duration.ofMillis(properties.reconnectIntervalMs),
-                        )
-                    )
-                    .resume(Resume())
-                    .keepAlive(
-                        Duration.ofMillis(properties.keepAliveIntervalMs),
-                        Duration.ofMillis(properties.keepAliveMaxLifetimeMs),
-                    )
-            }
-            .setupRoute(properties.setupRoute)
-            .setupMetadata(
-                "${properties.instanceType}:${properties.instanceId}",
-                MimeType.valueOf("text/plain")
-            )
-            .setupData(token)
-            .tcp(properties.host, properties.port)
+                .rsocketStrategies(brokerRSocketStrategies)
+                .rsocketConnector { connector: RSocketConnector ->
+                    connector
+                            .reconnect(
+                                    Retry.backoff(
+                                            if (properties.maxReconnectAttempts < 0) Long.MAX_VALUE
+                                            else properties.maxReconnectAttempts.toLong(),
+                                            Duration.ofMillis(properties.reconnectIntervalMs),
+                                    ).maxBackoff(Duration.ofMillis(properties.maxReconnectIntervalMs))
+                            )
+                            .resume(Resume())
+                            .keepAlive(
+                                    Duration.ofMillis(properties.keepAliveIntervalMs),
+                                    Duration.ofMillis(properties.keepAliveMaxLifetimeMs),
+                            )
+                }
+                .setupRoute(properties.setupRoute)
+                .setupMetadata(
+                        "${properties.instanceType}:${properties.instanceId}",
+                        MimeType.valueOf("text/plain")
+                )
+                .setupData(token)
     }
 }

@@ -30,6 +30,9 @@ data class BrokerConnectionProperties(
         /** 重连间隔时间（毫秒） */
         val reconnectIntervalMs: Long = 3000,
 
+        /** 最大重连时间间隔（毫秒） */
+        val maxReconnectIntervalMs: Long = 60000,
+
         /** 最大重连次数，-1 表示无限重连 */
         val maxReconnectAttempts: Int = -1,
 

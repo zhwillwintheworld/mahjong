@@ -11,8 +11,9 @@ enum class RouteType(val code: Byte) {
     /** 用户路由，使用 userId 作为 route_key */
     USER(2),
 
-    /** 广播，发送给所有 Logic */
-    BROADCAST(3);
+    /** 逻辑路由，使用 accessId 作为 route_key */
+    LOGIC(3)
+    ;
 
     companion object {
         fun fromCode(code: Byte): RouteType {
