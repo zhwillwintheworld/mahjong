@@ -1,6 +1,7 @@
 package com.sudooom.mahjong.common.route
 
 import com.sudooom.mahjong.common.proto.ServerMessage
+
 /**
  * 带路由信息的消息 包装 payload 和路由元数据
  *

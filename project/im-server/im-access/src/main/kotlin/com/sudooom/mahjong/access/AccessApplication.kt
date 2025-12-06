@@ -9,7 +9,7 @@ import org.springframework.context.annotation.ComponentScan
  * 有状态服务，负责维护用户长连接
  */
 @SpringBootApplication
-@ComponentScan("com.sudooom.mahjong.access", "com.sudooom.mahjong.common")
+@ComponentScan("com.sudooom.mahjong")
 class AccessApplication
 
 fun main(args: Array<String>) {

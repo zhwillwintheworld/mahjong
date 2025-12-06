@@ -7,13 +7,13 @@ import com.sudooom.mahjong.core.holder.BrokerInboundHolder
 import com.sudooom.mahjong.core.holder.BrokerOutboundHolder
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
-import java.time.Duration
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
 import org.springframework.messaging.rsocket.RSocketRequester
 import org.springframework.stereotype.Component
 import reactor.core.Disposable
 import reactor.util.retry.Retry
+import java.time.Duration
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Broker 连接管理器 负责管理与 Broker 的 RSocket 连接和 request-channel 通信
@@ -22,8 +22,8 @@ import reactor.util.retry.Retry
  */
 @Component
 class BrokerConnectionManager(
-        private val brokerRSocketRequesterBuilder: RSocketRequester.Builder,
-        private val properties: BrokerConnectionProperties,
+    private val brokerRSocketRequesterBuilder: RSocketRequester.Builder,
+    private val properties: BrokerConnectionProperties,
 ) : Loggable {
 
     private val connected = AtomicBoolean(false)
@@ -49,45 +49,45 @@ class BrokerConnectionManager(
         logger.info("Establishing request-channel to ${properties.channelRoute}...")
 
         val channelDisposable =
-                requester
-                        .route(properties.channelRoute)
-                        .data(BrokerOutboundHolder.getMessageFlow())
-                        .retrieveFlux(ServerMessage::class.java)
-                        .doOnSubscribe {
-                            connected.set(true)
-                            logger.info("Request-channel established successfully")
-                        }
-                        .doOnNext { inbound ->
-                            // 将接收到的消息发布到 inboundHolder
-                            if (!BrokerInboundHolder.publish(inbound)) {
-                                logger.warn("Failed to publish message, buffer full")
-                            }
-                        }
-                        .doOnError { error ->
-                            connected.set(false)
-                            logger.error("Request-channel error: ${error.message}", error)
-                        }
-                        .doOnComplete {
-                            connected.set(false)
-                            logger.warn("Request-channel completed")
-                        }
-                        .retryWhen(
-                                Retry.backoff(
-                                                if (properties.maxReconnectAttempts < 0)
-                                                        Long.MAX_VALUE
-                                                else properties.maxReconnectAttempts.toLong(),
-                                                Duration.ofMillis(properties.reconnectIntervalMs)
-                                        )
-                                        .maxBackoff(
-                                                Duration.ofMillis(properties.maxReconnectIntervalMs)
-                                        )
-                                        .doBeforeRetry { signal ->
-                                            logger.info(
-                                                    "Retrying request-channel, attempt ${signal.totalRetries() + 1}..."
-                                            )
-                                        }
+            requester
+                .route(properties.channelRoute)
+                .data(BrokerOutboundHolder.getMessageFlow())
+                .retrieveFlux(ServerMessage::class.java)
+                .doOnSubscribe {
+                    connected.set(true)
+                    logger.info("Request-channel established successfully")
+                }
+                .doOnNext { inbound ->
+                    // 将接收到的消息发布到 inboundHolder
+                    if (!BrokerInboundHolder.publish(inbound)) {
+                        logger.warn("Failed to publish message, buffer full")
+                    }
+                }
+                .doOnError { error ->
+                    connected.set(false)
+                    logger.error("Request-channel error: ${error.message}", error)
+                }
+                .doOnComplete {
+                    connected.set(false)
+                    logger.warn("Request-channel completed")
+                }
+                .retryWhen(
+                    Retry.backoff(
+                        if (properties.maxReconnectAttempts < 0)
+                            Long.MAX_VALUE
+                        else properties.maxReconnectAttempts.toLong(),
+                        Duration.ofMillis(properties.reconnectIntervalMs)
+                    )
+                        .maxBackoff(
+                            Duration.ofMillis(properties.maxReconnectIntervalMs)
                         )
-                        .subscribe()
+                        .doBeforeRetry { signal ->
+                            logger.info(
+                                "Retrying request-channel, attempt ${signal.totalRetries() + 1}..."
+                            )
+                        }
+                )
+                .subscribe()
 
         channelDisposableRef.set(channelDisposable)
     }

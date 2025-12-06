@@ -4,10 +4,10 @@ import com.sudooom.mahjong.broker.session.ServerSession
 import com.sudooom.mahjong.broker.session.ServerSessionManager
 import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.common.route.RouteMetadata
-import com.sudooom.mahjong.common.route.RouteType
+import com.sudooom.mahjong.common.route.RouteType.*
+import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.CRC32
-import org.springframework.stereotype.Component
 
 /** 消息路由器 根据 RouteMetadata 进行一致性哈希路由，选择目标 Logic 实例 */
 @Component
@@ -32,20 +32,24 @@ class MessageRouter(private val sessionManager: ServerSessionManager) : Loggable
         }
 
         return when (metadata.type) {
-            RouteType.BROADCAST -> {
+            USER -> {
                 // 广播：返回所有 Logic 实例
                 logicSessions.toList()
             }
-            RouteType.ROOM, RouteType.USER -> {
+
+            ROOM, USER -> {
                 // 一致性哈希选择单个实例
                 val target = consistentHash(metadata.routeKey, logicSessions)
                 if (target != null) listOf(target) else emptyList()
             }
-            RouteType.UNKNOWN -> {
+
+            LOGIC -> {
                 // 未知类型：随机选择一个
                 logger.warn("Unknown route type, randomly selecting LOGIC instance")
                 listOf(logicSessions.random())
             }
+
+            UNKNOWN -> TODO()
         }
     }
 

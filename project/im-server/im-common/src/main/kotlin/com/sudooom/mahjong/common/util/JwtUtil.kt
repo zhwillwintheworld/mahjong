@@ -3,15 +3,17 @@ package com.sudooom.mahjong.common.util
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.crypto.SecretKey
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 
 /** JWT 工具类 用于生成和验证 JWT Token */
 @Component
-class JwtUtil(@field:Value(value = $$"${jwt.secret}") private val jwtSecret: String) {
+class JwtUtil {
+    @field:Value(value = $$"${jwt.secret}")
+    private lateinit var jwtSecret: String
 
     // 默认过期时间：7 天（毫秒）
     private val defaultExpirationTime = 7 * 24 * 60 * 60 * 1000L
@@ -42,10 +44,10 @@ class JwtUtil(@field:Value(value = $$"${jwt.secret}") private val jwtSecret: Str
      * @param additionalClaims 额外的声明
      */
     fun generateToken(
-            userId: String,
-            deviceId: String? = null,
-            expirationTime: Long = defaultExpirationTime,
-            additionalClaims: Map<String, Any> = emptyMap()
+        userId: String,
+        deviceId: String? = null,
+        expirationTime: Long = defaultExpirationTime,
+        additionalClaims: Map<String, Any> = emptyMap()
     ): String {
         val now = Date()
         val expiration = Date(now.time + expirationTime)
@@ -55,13 +57,8 @@ class JwtUtil(@field:Value(value = $$"${jwt.secret}") private val jwtSecret: Str
         deviceId?.let { claims[CLAIM_DEVICE_ID] = it }
         claims.putAll(additionalClaims)
 
-        return Jwts.builder()
-                .subject(tokenSubject)
-                .issuedAt(now)
-                .expiration(expiration)
-                .claims(claims)
-                .signWith(secretKey)
-                .compact()
+        return Jwts.builder().subject(tokenSubject).issuedAt(now).expiration(expiration).claims(claims)
+            .signWith(secretKey).compact()
     }
 
     /**
@@ -72,22 +69,15 @@ class JwtUtil(@field:Value(value = $$"${jwt.secret}") private val jwtSecret: Str
      * @return JWT Token
      */
     fun generateServerToken(
-            instanceType: String,
-            instanceId: String,
-            expirationTime: Long = 60 * 60 * 1000L
+        instanceType: String, instanceId: String, expirationTime: Long = 60 * 60 * 1000L
     ): String {
         val now = Date()
         val expiration = Date(now.time + expirationTime)
 
         val claims = mapOf(CLAIM_INSTANCE_TYPE to instanceType, CLAIM_INSTANCE_ID to instanceId)
 
-        return Jwts.builder()
-                .subject(tokenSubject)
-                .issuedAt(now)
-                .expiration(expiration)
-                .claims(claims)
-                .signWith(secretKey)
-                .compact()
+        return Jwts.builder().subject(tokenSubject).issuedAt(now).expiration(expiration).claims(claims)
+            .signWith(secretKey).compact()
     }
 
     /**
@@ -103,12 +93,9 @@ class JwtUtil(@field:Value(value = $$"${jwt.secret}") private val jwtSecret: Str
      * @throws io.jsonwebtoken.MalformedJwtException 如果 subject 不匹配
      */
     fun parseToken(token: String): Claims {
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .requireSubject(tokenSubject) // 验证 subject 必须为 "sudooom"
-                .build()
-                .parseSignedClaims(token) // 自动验证过期时间
-                .payload
+        return Jwts.parser().verifyWith(secretKey).requireSubject(tokenSubject) // 验证 subject 必须为 "sudooom"
+            .build().parseSignedClaims(token) // 自动验证过期时间
+            .payload
     }
 
     /**
@@ -118,8 +105,7 @@ class JwtUtil(@field:Value(value = $$"${jwt.secret}") private val jwtSecret: Str
      * @return claim 的值
      */
     fun <T> getClaim(claims: Claims, claimKey: String, requiredType: Class<T>): T {
-        return claims.get(claimKey, requiredType)
-                ?: throw IllegalArgumentException("Claim $claimKey not found")
+        return claims.get(claimKey, requiredType) ?: throw IllegalArgumentException("Claim $claimKey not found")
     }
 
     /**

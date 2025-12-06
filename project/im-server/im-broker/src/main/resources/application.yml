@@ -14,5 +14,5 @@ spring:
   rsocket:
     server:
       transport: tcp
-      port: 88881
+      port: 8881
 

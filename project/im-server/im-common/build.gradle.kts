@@ -1,7 +1,9 @@
+import com.google.protobuf.gradle.id
+
 plugins {
     id("java-library")
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.wire)
+    alias(libs.plugins.protobuf)
     alias(libs.plugins.spring.dependency.management)
 }
 
@@ -12,9 +14,8 @@ dependencies {
     // Spring 最小依赖 - 用于 @Component 和 @Value 注解
     api(libs.spring.context)
     api(libs.spring.boot)
-    
-    // Wire Runtime
-    api(libs.wire.runtime)
+    api(libs.protobuf.java)
+    api(libs.protobuf.kotlin)
     
     // Jackson Kotlin - JSON 序列化
     api(libs.jackson.module.kotlin)
@@ -37,15 +38,36 @@ dependencyManagement {
     }
 }
 
-wire {
-    sourcePath {
-        srcDir("src/main/resources/proto")
+
+// 4. 配置 Protobuf 编译任务
+protobuf {
+    // 指定 protoc 编译器（插件会自动下载，不需要本地安装）
+    protoc {
+        artifact = "com.google.protobuf:protoc:4.30.2"
     }
-    
-    kotlin {
-        // 默认生成 builder 模式，如果喜欢数据类可以配置 android = true (虽然名字叫 android 但其实是生成 data class)
-        // 或者使用 javaInterop = true 等
-        // 这里使用默认配置，生成 Kotlin 类
-        out = "src/main/kotlin"
+
+    // 配置生成规则
+    generateProtoTasks {
+        all().forEach { task ->
+            // 内置支持 Java 和 Kotlin
+            task.builtins {
+                // 生成 Java 代码 (基础，必须要有，因为 Kotlin 扩展依赖它)
+                // 生成 Kotlin DSL 代码 (这是你要的)
+                id("kotlin")
+            }
+        }
+    }
+}
+
+// 5. 将生成的代码路径加入 SourceSet，让 IDE 能识别
+sourceSets {
+    main {
+        proto {
+            srcDir("src/main/resources/proto")
+        }
+        java {
+            srcDirs("build/generated/source/proto/main/java")
+            srcDirs("build/generated/source/proto/main/kotlin")
+        }
     }
 }

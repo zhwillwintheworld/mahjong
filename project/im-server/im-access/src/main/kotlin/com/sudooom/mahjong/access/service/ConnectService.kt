@@ -34,8 +34,8 @@ class ConnectService(private val jwtUtil: JwtUtil, private val sessionManager: S
     }
 
     suspend fun message(
-            messages: Flow<ClientRequest>,
-            requester: RSocketRequester,
+        messages: Flow<ClientRequest>,
+        requester: RSocketRequester,
     ): Flow<ClientResponse> {
         val session =
                 sessionManager.getSession(requester)
