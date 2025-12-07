@@ -21,10 +21,10 @@ enum Platform {
 
 enum ChatType {
   CHAT_TYPE_UNKNOWN = 0;
-  CHAT_PRIVATE = 1; // 私聊
-  CHAT_GROUP = 2;   // 群聊
-  CHAT_SYSTEM = 3;  // 系统通知
-  CHAT_MAHJONG = 4; // 麻将指令
+  CHAT_PRIVATE = 1;
+  CHAT_GROUP = 2;
+  CHAT_SYSTEM = 3;
+  CHAT_MAHJONG = 4;
 }
 
 enum MsgType {
@@ -35,7 +35,7 @@ enum MsgType {
   VIDEO = 4;
   FILE = 5;
   EMOJI = 6;
-  CMD = 7; // 指令消息 (撤回等)
+  CMD = 7;
 }
 
 enum GameType {
@@ -55,21 +55,26 @@ enum ErrorCode {
 
 enum MahjongColor {
   COLOR_UNKNOWN = 0;
-  MAN = 1;    // 万
-  SUO = 2;    // 条
-  PIN = 3;    // 饼
-  HONORS = 4; // 字 (风/箭) - Optional but good practice
+  MAN = 1;
+  SUO = 2;
+  PIN = 3;
+  HONORS = 4;
+}
+
+enum RoomStatus {
+  ROOM_WAITING = 0;
+  ROOM_PLAYING = 1;
+  ROOM_SETTLING = 2;
 }
 
 // =============================================================================
-// Client Request (Client -> Server)
+// Client Request (Client -> Access -> Logic)
 // =============================================================================
 
 message ClientRequest {
-  string req_id = 1;        // 请求ID，用于匹配响应
-  int64 timestamp = 2;      // 请求时间戳
-  // token 和 auth 已移除，Access 通过连接 Session 获取用户身份
-  
+  string req_id = 1;
+  int64 timestamp = 2;
+
   oneof payload {
     ChatSendReq chat_send = 11;
     GameReq game = 12;
@@ -78,18 +83,11 @@ message ClientRequest {
   }
 }
 
-message AuthReq {
-  string user_id = 1;
-  string device_id = 2;
-  Platform platform = 3;
-  string app_version = 4;
-}
-
 message ChatSendReq {
   ChatType chat_type = 1;
-  string target_id = 2;     // 接收者ID 或 群ID
+  string target_id = 2;
   MsgType msg_type = 3;
-  string content = 4;       // 消息内容 (JSON string for complex types)
+  string content = 4;
   map<string, string> ext = 5;
 }
 
@@ -102,17 +100,16 @@ message RoomReq {
   }
   Action action = 1;
   GameType game_type = 2;
-  string room_id = 3;       // Join/Leave/Ready 时需要
-  string room_config = 4;   // Create 时需要 (JSON)
+  string room_id = 3;
+  string room_config = 4;
 }
 
 message GameReq {
   string room_id = 1;
   GameType game_type = 2;
-  
+
   oneof game_data {
     MahjongReq mahjong = 10;
-    // PokerReq poker = 11;
   }
 }
 
@@ -121,24 +118,22 @@ message HeartbeatReq {
 }
 
 // =============================================================================
-// Client Response (Server -> Client)
-// Includes both Responses (to requests) and Pushes (server events)
+// Client Response (Logic -> Access -> Client)
 // =============================================================================
 
 message ClientResponse {
-  string req_id = 1;        // 如果是响应，对应请求ID；如果是推送，可能为空或特定ID
+  string req_id = 1;
   int64 timestamp = 2;
-  ErrorCode code = 3;       // 状态码
-  string msg = 4;           // 错误信息或提示
-  
+  ErrorCode code = 3;
+  string msg = 4;
+
   oneof payload {
-    // Responses
-    AuthResp auth_resp = 10;
+    // 响应
     ChatSendAck chat_send_ack = 11;
     RoomResp room_resp = 12;
     HeartbeatResp heartbeat_resp = 13;
-    
-    // Pushes
+
+    // 推送
     ChatPush chat_push = 20;
     GamePush game_push = 21;
     RoomPush room_push = 22;
@@ -146,15 +141,8 @@ message ClientResponse {
   }
 }
 
-// --- Responses ---
-
-message AuthResp {
-  UserInfo user = 1;
-  string session_id = 2;
-}
-
 message ChatSendAck {
-  string msg_id = 1;        // 服务端生成的消息ID
+  string msg_id = 1;
   int64 send_time = 2;
 }
 
@@ -167,14 +155,12 @@ message HeartbeatResp {
   int64 server_time = 1;
 }
 
-// --- Pushes ---
-
 message ChatPush {
   string msg_id = 1;
   string sender_id = 2;
-  UserInfo sender_info = 3; // 发送者信息快照
+  UserInfo sender_info = 3;
   ChatType chat_type = 4;
-  string target_id = 5;     // 群ID 或 自己的ID
+  string target_id = 5;
   MsgType msg_type = 6;
   string content = 7;
   int64 send_time = 8;
@@ -192,16 +178,16 @@ message RoomPush {
   }
   Event event = 1;
   string room_id = 2;
-  string user_id = 3;       // 触发事件的用户
-  RoomInfo room_info = 4;   // 最新的房间信息
+  string user_id = 3;
+  RoomInfo room_info = 4;
 }
 
 message GamePush {
   string room_id = 1;
   GameType game_type = 2;
-  
+
   oneof game_data {
-    MahjongNotification mahjong = 10;
+    MahjongPush mahjong = 10;
   }
 }
 
@@ -218,185 +204,29 @@ message SystemPush {
 }
 
 // =============================================================================
-// Server Message (Internal Service Communication)
-// 消息结构设计:
-// 1. ServerMessage: 顶层路由消息，只有两个方向 (Access <-> Logic)
-// 2. 每个方向包含三类消息:
-//    - UserMessage: 涉及用户的业务消息 (聊天、游戏等)
-//    - MsgAck: 消息确认
-//    - SystemCommand: 系统指令 (上下线、踢人等)
+// Server Message (模块间系统交互，不含用户业务)
 // =============================================================================
 
-// 顶层路由消息 - Access 和 Logic 之间的双向通信
 message ServerMessage {
-  string trace_id = 1;          // 链路追踪ID
-  string from_service = 2;      // e.g., "logic-1", "access-2"
-  string to_service = 3;        // e.g., "access-2", "logic-1"
+  string trace_id = 1;
+  string from_service = 2;
+  string to_service = 3;
   int64 timestamp = 4;
-  
+
   oneof payload {
-    // Access -> Logic 方向的消息
-    AccessToLogicMsg access_to_logic = 10;
-    
-    // Logic -> Access 方向的消息
-    LogicToAccessMsg logic_to_access = 11;
-  }
-}
-
-// ============== Access -> Logic 方向 ==============
-
-message AccessToLogicMsg {
-  string user_id = 1;           // 用户ID (从 Session 获取)
-  string session_id = 2;        // 会话ID
-  string gateway_id = 3;        // Access 网关ID
-  string device_id = 4;         // 设备ID
-  Platform platform = 5;        // 平台类型
-  
-  oneof payload {
-    // 1. 用户业务消息
-    UserMessage user_message = 10;
-    
-    // 2. 消息确认
-    MsgAck ack = 11;
-    
-    // 3. 系统指令
-    SystemCommand system_cmd = 12;
-  }
-}
-
-// ============== Logic -> Access 方向 ==============
-
-message LogicToAccessMsg {
-  oneof payload {
-    // 1. 用户业务消息 (推送)
-    UserMessagePush user_push = 10;
-    
-    // 2. 消息确认
-    MsgAck ack = 11;
-    
-    // 3. 系统指令
-    SystemCommand system_cmd = 12;
-  }
-}
-
-// =============================================================================
-// 消息类型定义
-// =============================================================================
-
-// ========== 1. 用户业务消息 ==========
-
-// Access -> Logic: 用户发起的业务消息
-message UserMessage {
-  string msg_id = 1;            // 消息ID
-  
-  oneof message_type {
-    // 聊天消息
-    ChatSendReq chat_send = 10;
-    
-    // 游戏请求
-    GameReq game_req = 11;
-    
-    // 房间操作
-    RoomReq room_req = 12;
-    
-    // 心跳 (客户端心跳，不是服务端间心跳)
-    HeartbeatReq heartbeat = 13;
-  }
-}
-
-// Logic -> Access: 推送给用户的业务消息
-message UserMessagePush {
-  repeated string target_user_ids = 1; // 目标用户列表
-  string msg_id = 2;                   // 消息ID
-  bool require_ack = 3;                // 是否需要 ACK
-  
-  oneof message_type {
-    // 聊天推送
-    ChatPush chat_push = 10;
-    
-    // 游戏推送
-    GamePush game_push = 11;
-    
-    // 房间推送
-    RoomPush room_push = 12;
-    
-    // 系统推送
-    SystemPush system_push = 13;
-    
-    // 聊天发送确认
-    ChatSendAck chat_ack = 14;
-    
-    // 房间操作响应
-    RoomResp room_resp = 15;
-    
-    // 心跳响应
-    HeartbeatResp heartbeat_resp = 16;
-  }
-}
-
-// ========== 2. 消息确认 (ACK) ==========
-
-message MsgAck {
-  enum AckType {
-    RECEIVED = 0;               // 已收到
-    PROCESSED = 1;              // 已处理
-    DELIVERED = 2;              // 已投递给客户端
-    FAILED = 3;                 // 失败
-  }
-  
-  string ack_id = 1;            // ACK ID
-  string original_msg_id = 2;   // 原始消息ID
-  string original_trace_id = 3; // 原始追踪ID
-  AckType ack_type = 4;
-  int64 timestamp = 5;
-  
-  // 如果失败，提供错误信息
-  string error_code = 6;
-  string error_msg = 7;
-}
-
-// ========== 3. 系统指令 ==========
-
-message SystemCommand {
-  enum CommandType {
-    // Access -> Logic 的指令
-    USER_ONLINE = 0;            // 用户上线
-    USER_OFFLINE = 1;           // 用户下线
-    
-    // Logic -> Access 的指令
-    KICK_USER = 10;             // 踢用户下线
-    BROADCAST = 11;             // 广播消息
-    
-    // 双向指令
-    COMPENSATION = 20;          // 补偿操作
-  }
-  
-  string cmd_id = 1;            // 指令ID
-  CommandType cmd_type = 2;
-  int64 timestamp = 3;
-  
-  oneof command_data {
-    // 用户上下线
     UserOnlineOffline user_status = 10;
-    
-    // 踢用户
     KickUser kick_user = 11;
-    
-    // 广播
     BroadcastCommand broadcast = 12;
-    
-    // 补偿
-    CompensationCommand compensation = 13;
+    MsgAck ack = 13;
+    CompensationCommand compensation = 14;
   }
 }
 
-// 用户上下线指令
 message UserOnlineOffline {
   enum Status {
     ONLINE = 0;
     OFFLINE = 1;
   }
-  
   string user_id = 1;
   Status status = 2;
   string gateway_id = 3;
@@ -405,28 +235,40 @@ message UserOnlineOffline {
   int64 timestamp = 6;
 }
 
-// 踢用户指令
 message KickUser {
   string user_id = 1;
   string reason = 2;
-  bool force = 3;               // 是否强制踢出
+  bool force = 3;
 }
 
-// 广播指令
 message BroadcastCommand {
-  repeated string user_ids = 1; // 目标用户列表，为空表示全体用户
-  string room_id = 2;           // 房间ID (房间广播)
-  UserMessagePush message = 3;  // 广播的消息内容
+  repeated string user_ids = 1;
+  string room_id = 2;
+  ClientResponse message = 3;
 }
 
-// 补偿指令
+message MsgAck {
+  enum AckType {
+    RECEIVED = 0;
+    PROCESSED = 1;
+    DELIVERED = 2;
+    FAILED = 3;
+  }
+  string ack_id = 1;
+  string original_msg_id = 2;
+  string original_trace_id = 3;
+  AckType ack_type = 4;
+  int64 timestamp = 5;
+  string error_code = 6;
+  string error_msg = 7;
+}
+
 message CompensationCommand {
   enum CompensationType {
-    RETRY = 0;                  // 重试
-    ROLLBACK = 1;               // 回滚
-    ALERT = 2;                  // 告警
+    RETRY = 0;
+    ROLLBACK = 1;
+    ALERT = 2;
   }
-  
   string compensation_id = 1;
   string original_trace_id = 2;
   CompensationType type = 3;
@@ -434,8 +276,6 @@ message CompensationCommand {
   string error_msg = 5;
   int32 retry_count = 6;
   int32 max_retry = 7;
-  
-  // 原始消息数据 (用于重试)
   bytes original_payload = 10;
 }
 
@@ -457,110 +297,133 @@ message RoomInfo {
   int32 max_players = 3;
   int32 current_players = 4;
   repeated RoomPlayer players = 5;
-  int32 status = 6; // 0: Waiting, 1: Playing
+  RoomStatus status = 6;
 }
 
 message RoomPlayer {
   string user_id = 1;
   UserInfo user = 2;
   bool is_ready = 3;
-  int32 seat_index = 4; // 0-3
+  int32 seat_index = 4;
   bool is_online = 5;
 }
 
 message MahjongTile {
   MahjongColor color = 1;
-  int32 value = 2; // 1-9
-  int32 index = 3; // 1-4 (第几张)
+  int32 value = 2;
+  int32 index = 3;
 }
 
-// 牌组类型（碰、杠、吃）
 message MeldGroup {
   enum MeldType {
-    PONG = 0;      // 碰（3张相同）
-    KONG = 1;      // 明杠（4张相同，别人打的）
-    CONCEALED_KONG = 2; // 暗杠（4张相同，自己摸的）
-    CHOW = 3;      // 吃（顺子，123、234等）
+    PONG = 0;
+    KONG = 1;
+    CONCEALED_KONG = 2;
+    CHOW = 3;
   }
-  
   MeldType type = 1;
-  repeated MahjongTile tiles = 2; // 牌组中的牌
-  int32 from_seat = 3;            // 来自哪个座位的牌（碰杠时有效，-1表示自己摸的）
+  repeated MahjongTile tiles = 2;
+  int32 from_seat = 3;
 }
 
-// 玩家公开信息（所有玩家都能看到）
 message PlayerPublicInfo {
-  int32 seat = 1;                      // 座位号
-  string user_id = 2;                  // 用户ID
-  repeated MeldGroup melds = 3;        // 碰、杠、吃的牌组
-  repeated MahjongTile discarded = 4;  // 打出的牌（按时间顺序）
-  int32 hand_count = 5;                // 手牌数量（不显示具体牌）
+  int32 seat = 1;
+  string user_id = 2;
+  repeated MeldGroup melds = 3;
+  repeated MahjongTile discarded = 4;
+  int32 hand_count = 5;
 }
 
 // =============================================================================
-// Mahjong Specifics
+// Mahjong Request
 // =============================================================================
 
-// 麻将请求 (Client -> Server)
-// 麻将请求 (Client -> Server)
 message MahjongReq {
   enum Action {
-    DISCARD = 0; // 出牌
-    PONG = 1;    // 碰
-    KONG = 2;    // 杠
-    HU = 3;      // 胡 (点炮)
-    ZI_MO = 4;   // 自摸
-    AUTO = 5;    // 托管
-    PASS = 6;    // 过 (放弃操作)
+    DISCARD = 0;
+    PONG = 1;
+    KONG = 2;
+    HU = 3;
+    ZI_MO = 4;
+    AUTO = 5;
+    PASS = 6;
   }
-  
   Action action = 1;
-  MahjongTile tile = 2;     // 操作的牌
-  
-  // 事件和决策追踪
-  string event_id = 3;      // 响应的事件ID (对应 MahjongNotification.event_id)
-  string decision_id = 4;   // 响应的决策ID (如果是多人决策场景，如碰/杠/胡)
+  MahjongTile tile = 2;
+  string event_id = 3;
+  string decision_id = 4;
 }
 
-// 麻将通知 (Server -> Client)
-message MahjongNotification {
-  enum Type {
-    GAME_START = 0;         // 游戏开始 (发牌)
-    TURN_CHANGE = 1;        // 轮到某人
-    ACTION_RESULT = 2;      // 某人做了动作 (出牌/碰/杠/胡)
-    ASK_ACTION = 3;         // 询问玩家操作 (是否碰/杠/胡)
-    GAME_SETTLEMENT = 4;    // 单局结算
-    GAME_TOTAL_RESULT = 5;  // 总结算
+// =============================================================================
+// Mahjong Push (拆分为多个小消息，避免大对象)
+// =============================================================================
+
+message MahjongPush {
+  string event_id = 1;
+
+  oneof notification {
+    MjGameStart game_start = 10;
+    MjTurnChange turn_change = 11;
+    MjActionResult action_result = 12;
+    MjAskAction ask_action = 13;
+    MjSettlement settlement = 14;
+    MjTotalResult total_result = 15;
   }
-  
-  Type type = 1;
-  
-  // 事件和决策追踪
-  string event_id = 2;      // 事件唯一ID，客户端响应时需要携带
-  string decision_id = 3;   // 决策ID (仅在 ASK_ACTION 时有值，用于多人决策场景)
-  
-  // State Data
-  int32 remain_cards = 4;   // 剩余牌数
-  int32 current_seat = 5;   // 当前操作者座位
-  int32 countdown = 6;      // 倒计时
-  
-  // For TURN_CHANGE (Private to current player)
-  MahjongTile drawn_tile = 7; // 摸到的牌 (仅推送给当前玩家，其他玩家此字段为空)
-  
-  // For ACTION_RESULT
-  string action_user_id = 8;
-  int32 action_seat = 9;
-  MahjongReq.Action action = 10;
-  MahjongTile tile = 11;
-  repeated MahjongTile related_tiles = 12; // 碰/杠 相关的牌
-  
-  // For ASK_ACTION (Private to user)
-  repeated MahjongReq.Action allowed_actions = 13;
-  
-  // For GAME_START / SYNC
-  repeated MahjongTile hand_tiles = 14; // 私有手牌（仅推送给对应玩家）
-  repeated PlayerPublicInfo players_public_info = 15; // 所有玩家的公开信息
-  
-  // For SETTLEMENT
-  string settlement_json = 16; // 结算详情
+}
+
+// 游戏开始 - 发牌
+message MjGameStart {
+  repeated MahjongTile hand_tiles = 1;
+  repeated PlayerPublicInfo players_public_info = 2;
+  int32 remain_cards = 3;
+  int32 dealer_seat = 4;
+}
+
+// 轮到某人 - 摸牌
+message MjTurnChange {
+  int32 current_seat = 1;
+  int32 remain_cards = 2;
+  int32 countdown = 3;
+  MahjongTile drawn_tile = 4;  // 仅推送给当前玩家
+}
+
+// 动作结果 - 某人出牌/碰/杠/胡
+message MjActionResult {
+  int32 action_seat = 1;
+  string action_user_id = 2;
+  MahjongReq.Action action = 3;
+  MahjongTile tile = 4;
+  repeated MahjongTile related_tiles = 5;  // 碰/杠相关的牌
+}
+
+// 询问操作 - 是否碰/杠/胡
+message MjAskAction {
+  string decision_id = 1;
+  int32 countdown = 2;
+  MahjongTile trigger_tile = 3;  // 触发询问的牌
+  repeated MahjongReq.Action allowed_actions = 4;
+}
+
+// 单局结算
+message MjSettlement {
+  int32 winner_seat = 1;
+  int32 win_type = 2;  // 0: 自摸, 1: 点炮
+  int32 loser_seat = 3;  // 点炮时有值
+  repeated int32 score_changes = 4;
+  repeated MahjongTile winning_tiles = 5;
+  string fan_description = 6;
+  int32 fan_count = 7;
+}
+
+// 总结算
+message MjTotalResult {
+  repeated MjPlayerResult player_results = 1;
+}
+
+message MjPlayerResult {
+  int32 seat = 1;
+  string user_id = 2;
+  int32 total_score = 3;
+  int32 win_count = 4;
+  int32 lose_count = 5;
 }

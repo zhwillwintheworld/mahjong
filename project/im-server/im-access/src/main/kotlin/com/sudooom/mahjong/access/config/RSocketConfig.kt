@@ -1,9 +1,9 @@
 package com.sudooom.mahjong.access.config
 
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.messaging.rsocket.RSocketStrategies
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler
-import org.springframework.context.annotation.Bean
 
 /**
  * RSocket 配置
@@ -14,8 +14,6 @@ class RSocketConfig {
     @Bean
     fun rSocketStrategies(): RSocketStrategies {
         return RSocketStrategies.builder()
-            .encoders { it.add(org.springframework.http.codec.protobuf.ProtobufEncoder()) }
-            .decoders { it.add(org.springframework.http.codec.protobuf.ProtobufDecoder()) }
             .build()
     }
     

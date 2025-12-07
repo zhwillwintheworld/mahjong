@@ -1,12 +1,14 @@
 package com.sudooom.mahjong.core.connection
 
 import com.sudooom.mahjong.common.annotation.Loggable
-import com.sudooom.mahjong.common.proto.ServerMessage
 import com.sudooom.mahjong.core.config.BrokerConnectionProperties
 import com.sudooom.mahjong.core.holder.BrokerInboundHolder
 import com.sudooom.mahjong.core.holder.BrokerOutboundHolder
+import io.netty.buffer.ByteBuf
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
+import org.springframework.core.ParameterizedTypeReference
+import org.springframework.messaging.Message
 import org.springframework.messaging.rsocket.RSocketRequester
 import org.springframework.stereotype.Component
 import reactor.core.Disposable
@@ -29,6 +31,7 @@ class BrokerConnectionManager(
     private val connected = AtomicBoolean(false)
     private val requesterRef = AtomicReference<RSocketRequester?>()
     private val channelDisposableRef = AtomicReference<Disposable?>()
+    val typeRef = object : ParameterizedTypeReference<Message<ByteBuf>>() {}
 
     /** 应用启动时自动连接 Broker 并建立 request-channel */
     @PostConstruct
@@ -52,7 +55,7 @@ class BrokerConnectionManager(
             requester
                 .route(properties.channelRoute)
                 .data(BrokerOutboundHolder.getMessageFlow())
-                .retrieveFlux(ServerMessage::class.java)
+                .retrieveFlux(typeRef)
                 .doOnSubscribe {
                     connected.set(true)
                     logger.info("Request-channel established successfully")

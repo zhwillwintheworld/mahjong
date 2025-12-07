@@ -37,8 +37,8 @@ data class BrokerConnectionProperties(
         val maxReconnectAttempts: Int = -1,
 
         /** 心跳间隔时间（毫秒） */
-        val keepAliveIntervalMs: Long = 30000,
+        val keepAliveIntervalMs: Long = 3000,
 
         /** 心跳超时时间（毫秒） */
-        val keepAliveMaxLifetimeMs: Long = 90000,
+        val keepAliveMaxLifetimeMs: Long = 9000,
 )
