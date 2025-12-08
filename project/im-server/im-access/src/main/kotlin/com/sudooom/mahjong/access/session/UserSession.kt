@@ -1,9 +1,7 @@
 package com.sudooom.mahjong.access.session
 
-import io.netty.buffer.ByteBuf
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.messaging.Message
 import org.springframework.messaging.rsocket.RSocketRequester
 import java.time.Instant
@@ -18,14 +16,13 @@ data class UserSession(
     val connectedAt: Instant = Instant.now(),
     var lastHeartbeat: Instant = Instant.now()
 ) {
-    private val _messageFlow = MutableSharedFlow<Message<ByteBuf>>(replay = 0)
-    val messageFlow: SharedFlow<Message<ByteBuf>> = _messageFlow.asSharedFlow()
+    private val _messageFlow = MutableSharedFlow<Message<DataBuffer>>(replay = 0)
 
-    suspend fun sendMessage(message: Message<ByteBuf>) {
+    suspend fun sendMessage(message: Message<DataBuffer>) {
         _messageFlow.emit(message)
     }
 
-    fun getMessageFlow(): MutableSharedFlow<Message<ByteBuf>> {
+    fun getMessageFlow(): MutableSharedFlow<Message<DataBuffer>> {
         return _messageFlow
     }
 

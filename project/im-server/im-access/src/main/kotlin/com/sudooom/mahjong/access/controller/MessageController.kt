@@ -1,8 +1,8 @@
 package com.sudooom.mahjong.access.controller
 
 import com.sudooom.mahjong.access.service.ConnectService
-import io.netty.buffer.ByteBuf
 import kotlinx.coroutines.flow.Flow
+import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.messaging.Message
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono
 /** 消息控制器 处理 RSocket 消息请求 */
 @Controller("api")
 class MessageController(
-        private val connectService: ConnectService,
+    private val connectService: ConnectService,
 ) {
 
     /** 建立连接 */
@@ -24,7 +24,10 @@ class MessageController(
     }
 
     @MessageMapping("im")
-    suspend fun im(@Payload messages: Flow<Message<ByteBuf>>, requester: RSocketRequester): Flow<Message<ByteBuf>> {
+    suspend fun im(
+        @Payload messages: Flow<Message<DataBuffer>>,
+        requester: RSocketRequester
+    ): Flow<Message<DataBuffer>> {
         return connectService.message(messages, requester)
     }
 }

@@ -4,10 +4,11 @@ import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.core.config.BrokerConnectionProperties
 import com.sudooom.mahjong.core.holder.BrokerInboundHolder
 import com.sudooom.mahjong.core.holder.BrokerOutboundHolder
-import io.netty.buffer.ByteBuf
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.messaging.Message
 import org.springframework.messaging.rsocket.RSocketRequester
 import org.springframework.stereotype.Component
@@ -31,7 +32,7 @@ class BrokerConnectionManager(
     private val connected = AtomicBoolean(false)
     private val requesterRef = AtomicReference<RSocketRequester?>()
     private val channelDisposableRef = AtomicReference<Disposable?>()
-    val typeRef = object : ParameterizedTypeReference<Message<ByteBuf>>() {}
+    val typeRef = object : ParameterizedTypeReference<Message<DataBuffer>>() {}
 
     /** 应用启动时自动连接 Broker 并建立 request-channel */
     @PostConstruct
@@ -56,6 +57,15 @@ class BrokerConnectionManager(
                 .route(properties.channelRoute)
                 .data(BrokerOutboundHolder.getMessageFlow())
                 .retrieveFlux(typeRef)
+                // ⚠️ 关键：处理流中被丢弃的 Message<DataBuffer>（异常、取消、背压等情况）
+                // 注意：流的类型是 Message<DataBuffer>，所以要匹配 Message 类型
+                .doOnDiscard(Message::class.java) { message ->
+                    val payload = message.payload
+                    if (payload is DataBuffer) {
+                        logger.debug("Releasing discarded DataBuffer from Message")
+                        DataBufferUtils.release(payload)
+                    }
+                }
                 .doOnSubscribe {
                     connected.set(true)
                     logger.info("Request-channel established successfully")
@@ -64,6 +74,8 @@ class BrokerConnectionManager(
                     // 将接收到的消息发布到 inboundHolder
                     if (!BrokerInboundHolder.publish(inbound)) {
                         logger.warn("Failed to publish message, buffer full")
+                        // ⚠️ 如果 buffer 满了，消息被丢弃，需要释放 DataBuffer
+                        DataBufferUtils.release(inbound.payload)
                     }
                 }
                 .doOnError { error ->

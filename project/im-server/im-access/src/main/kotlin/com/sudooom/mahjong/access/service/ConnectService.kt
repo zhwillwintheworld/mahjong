@@ -4,9 +4,9 @@ import com.sudooom.mahjong.access.session.SessionManager
 import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.common.util.JwtUtil
 import com.sudooom.mahjong.core.config.BrokerConnectionProperties
-import io.netty.buffer.ByteBuf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.messaging.Message
 import org.springframework.messaging.rsocket.RSocketRequester
 import org.springframework.stereotype.Service
@@ -40,9 +40,9 @@ class ConnectService(
     }
 
     suspend fun message(
-        messages: Flow<Message<ByteBuf>>,
+        messages: Flow<Message<DataBuffer>>,
         requester: RSocketRequester,
-    ): Flow<Message<ByteBuf>> {
+    ): Flow<Message<DataBuffer>> {
         val session =
             sessionManager.getSession(requester)
                 ?: throw IllegalArgumentException("User not found")

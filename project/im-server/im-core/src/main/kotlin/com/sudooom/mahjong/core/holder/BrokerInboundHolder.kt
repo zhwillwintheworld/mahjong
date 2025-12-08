@@ -1,9 +1,9 @@
 package com.sudooom.mahjong.core.holder
 
-import io.netty.buffer.ByteBuf
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.messaging.Message
 
 /**
@@ -13,17 +13,17 @@ import org.springframework.messaging.Message
 object BrokerInboundHolder {
 
     private val inboundFlow =
-        MutableSharedFlow<Message<ByteBuf>>(replay = 0, extraBufferCapacity = 1024)
+        MutableSharedFlow<Message<DataBuffer>>(replay = 0, extraBufferCapacity = 1024)
 
     /** 获取只读的 SharedFlow，供外部订阅消费 */
-    fun asFlow(): SharedFlow<Message<ByteBuf>> = inboundFlow.asSharedFlow()
+    fun asFlow(): SharedFlow<Message<DataBuffer>> = inboundFlow.asSharedFlow()
 
     /**
      * 内部使用：发布从 Broker 接收到的消息 使用 tryEmit 非挂起方式，适合在 Reactor 回调中调用 由于设置了 extraBufferCapacity =
      * 1024，正常情况下不会失败
      * @return true 如果成功发布，false 如果 buffer 已满
      */
-    internal fun publish(message: Message<ByteBuf>): Boolean {
+    internal fun publish(message: Message<DataBuffer>): Boolean {
         return inboundFlow.tryEmit(message)
     }
 }
