@@ -2,6 +2,8 @@ package com.sudooom.mahjong.broker.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.codec.DataBufferDecoder
+import org.springframework.core.codec.DataBufferEncoder
 import org.springframework.messaging.rsocket.RSocketStrategies
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler
 
@@ -12,7 +14,10 @@ class RSocketConfig {
     /** Broker 不需要 protobuf encoder/decoder，使用默认策略即可 */
     @Bean
     fun rSocketStrategies(): RSocketStrategies {
-        return RSocketStrategies.builder().build()
+        return RSocketStrategies.builder()
+            .encoder(DataBufferEncoder())
+            .decoder(DataBufferDecoder())
+            .build()
     }
 
     @Bean

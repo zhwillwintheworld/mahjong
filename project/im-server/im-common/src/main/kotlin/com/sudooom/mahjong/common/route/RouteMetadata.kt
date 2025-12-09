@@ -16,5 +16,11 @@ data class RouteMetadata(val type: RouteType, val routeKey: String) {
 
         /** 创建逻辑路由 */
         fun logic(accessId: String) = RouteMetadata(RouteType.LOGIC, accessId)
+
+        /** 从字符串类型创建路由 */
+        fun fromTypeString(typeString: String, routeKey: String): RouteMetadata {
+            val type = RouteType.entries.find { it.name == typeString } ?: RouteType.UNKNOWN
+            return RouteMetadata(type, routeKey)
+        }
     }
 }

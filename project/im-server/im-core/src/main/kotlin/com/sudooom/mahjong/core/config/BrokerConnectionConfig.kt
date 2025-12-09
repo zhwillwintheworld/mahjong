@@ -7,6 +7,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.codec.DataBufferDecoder
+import org.springframework.core.codec.DataBufferEncoder
 import org.springframework.http.codec.protobuf.ProtobufDecoder
 import org.springframework.http.codec.protobuf.ProtobufEncoder
 import org.springframework.messaging.rsocket.RSocketRequester
@@ -23,16 +25,16 @@ import java.time.Duration
 @EnableConfigurationProperties(BrokerConnectionProperties::class)
 @ComponentScan("com.sudooom.mahjong.common")
 class BrokerConnectionConfig(
-        private val properties: BrokerConnectionProperties,
-        private val jwtUtil: JwtUtil,
+    private val properties: BrokerConnectionProperties,
+    private val jwtUtil: JwtUtil,
 ) {
 
     /** Broker 连接专用的 RSocketStrategies 使用 Spring 内置的 ProtobufEncoder/ProtobufDecoder */
     @Bean
     fun brokerRSocketStrategies(): RSocketStrategies {
         return RSocketStrategies.builder()
-            .encoder(ProtobufEncoder())
-            .decoder(ProtobufDecoder())
+            .encoder(DataBufferEncoder())
+            .decoder(DataBufferDecoder())
             .build()
     }
 
@@ -42,41 +44,41 @@ class BrokerConnectionConfig(
      */
     @Bean
     fun brokerRSocketRequesterBuilder(
-            brokerRSocketStrategies: RSocketStrategies,
+        brokerRSocketStrategies: RSocketStrategies,
     ): RSocketRequester.Builder {
         // 生成 JWT，包含 instanceType 和 instanceId
         val token =
-                jwtUtil.generateServerToken(
-                        instanceType = properties.instanceType,
-                        instanceId = properties.instanceId
-                )
+            jwtUtil.generateServerToken(
+                instanceType = properties.instanceType,
+                instanceId = properties.instanceId
+            )
 
         return RSocketRequester.builder()
-                .rsocketStrategies(brokerRSocketStrategies)
-                .rsocketConnector { connector: RSocketConnector ->
-                    connector
-                            .reconnect(
-                                    Retry.backoff(
-                                        if (properties.maxReconnectAttempts < 0)
-                                            Long.MAX_VALUE
-                                        else properties.maxReconnectAttempts.toLong(),
-                                        Duration.ofMillis(
-                                            properties.reconnectIntervalMs
-                                        ),
-                                    )
-                                        .maxBackoff(
-                                            Duration.ofMillis(
-                                                properties.maxReconnectIntervalMs
-                                            )
-                                        )
+            .rsocketStrategies(brokerRSocketStrategies)
+            .rsocketConnector { connector: RSocketConnector ->
+                connector
+                    .reconnect(
+                        Retry.backoff(
+                            if (properties.maxReconnectAttempts < 0)
+                                Long.MAX_VALUE
+                            else properties.maxReconnectAttempts.toLong(),
+                            Duration.ofMillis(
+                                properties.reconnectIntervalMs
+                            ),
+                        )
+                            .maxBackoff(
+                                Duration.ofMillis(
+                                    properties.maxReconnectIntervalMs
+                                )
                             )
-                            .resume(Resume())
-                            .keepAlive(
-                                    Duration.ofMillis(properties.keepAliveIntervalMs),
-                                    Duration.ofMillis(properties.keepAliveMaxLifetimeMs),
-                            )
-                }
-                .setupRoute(properties.setupRoute)
-                .setupData(token)
+                    )
+                    .resume(Resume())
+                    .keepAlive(
+                        Duration.ofMillis(properties.keepAliveIntervalMs),
+                        Duration.ofMillis(properties.keepAliveMaxLifetimeMs),
+                    )
+            }
+            .setupRoute(properties.setupRoute)
+            .setupData(token)
     }
 }

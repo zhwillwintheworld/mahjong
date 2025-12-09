@@ -2,6 +2,8 @@ package com.sudooom.mahjong.broker.controller
 
 import com.sudooom.mahjong.broker.service.BrokerConnectService
 import kotlinx.coroutines.flow.Flow
+import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.messaging.Message
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.messaging.rsocket.RSocketRequester
@@ -31,9 +33,9 @@ class BrokerController(private val brokerConnectService: BrokerConnectService) {
      */
     @MessageMapping("channel")
     suspend fun channel(
-            @Payload messages: Flow<ByteArray>,
-            requester: RSocketRequester
-    ): Flow<ByteArray> {
+        @Payload messages: Flow<Message<DataBuffer>>,
+        requester: RSocketRequester
+    ): Flow<Message<DataBuffer>> {
         return brokerConnectService.channel(messages, requester)
     }
 }
