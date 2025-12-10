@@ -5,12 +5,8 @@ import com.sudooom.mahjong.broker.session.ServerSession
 import com.sudooom.mahjong.broker.session.ServerSessionManager
 import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.common.route.RouteMetadata
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.messaging.Message
@@ -19,7 +15,7 @@ import org.springframework.stereotype.Service
 /**
  * 消息分发服务
  * 处理来自 Access 的消息，根据路由规则分发到对应的 Logic 实例
- * 处理来自 Logic 的消息，根据 sessionId 分发到对应的 Access 实例
+ * 处理来自 Logic 的消息，根据 accessInstanceId 分发到对应的 Access 实例
  */
 @Service
 class MessageDispatchService(
@@ -111,27 +107,27 @@ class MessageDispatchService(
 
     /**
      * 将消息路由到 Access 实例
-     * 根据 accessSessionId 找到对应的 Access 会话
+     * 根据 accessInstanceId 找到对应的 Access 会话
      */
     private suspend fun dispatchToAccess(message: Message<DataBuffer>) {
         val headers = message.headers
-        val accessSessionId = headers["accessSessionId"] as? String
+        val accessInstanceId = headers["accessInstanceId"] as? String
 
-        if (accessSessionId == null) {
-            logger.warn("Missing accessSessionId, message discarded")
-            releaseMessageBuffer(message, "missing accessSessionId")
+        if (accessInstanceId == null) {
+            logger.warn("Missing accessInstanceId, message discarded")
+            releaseMessageBuffer(message, "missing accessInstanceId")
             return
         }
 
-        val accessSession = sessionManager.getSession(accessSessionId)
+        val accessSession = sessionManager.getSession(accessInstanceId)
         if (accessSession == null) {
-            logger.warn("Access session not found: $accessSessionId, message discarded")
+            logger.warn("Access session not found: $accessInstanceId, message discarded")
             releaseMessageBuffer(message, "access session not found")
             return
         }
 
         if (accessSession.instanceType != "ACCESS") {
-            logger.warn("Session is not ACCESS type: $accessSessionId, message discarded")
+            logger.warn("Session is not ACCESS type: $accessInstanceId, message discarded")
             releaseMessageBuffer(message, "not ACCESS session")
             return
         }

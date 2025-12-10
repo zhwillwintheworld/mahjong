@@ -24,32 +24,24 @@ class MessageRouter(private val sessionManager: ServerSessionManager) : Loggable
      * @param metadata 路由元数据
      * @return 目标 Logic session 列表（广播时返回多个，其他情况返回单个）
      */
-    fun route(metadata: RouteMetadata): List<ServerSession> {
+    fun route(metadata: RouteMetadata): ServerSession? {
         val logicSessions = sessionManager.getSessionsByType("LOGIC")
         if (logicSessions.isEmpty()) {
             logger.warn("No LOGIC instances available for routing")
-            return emptyList()
+            return null
         }
 
         return when (metadata.type) {
-            USER -> {
-                // 广播：返回所有 Logic 实例
-                logicSessions.toList()
-            }
-
             ROOM, USER -> {
                 // 一致性哈希选择单个实例
-                val target = consistentHash(metadata.routeKey, logicSessions)
-                if (target != null) listOf(target) else emptyList()
+                consistentHash(metadata.routeKey, logicSessions)
             }
 
             LOGIC -> {
-                // 未知类型：随机选择一个
-                logger.warn("Unknown route type, randomly selecting LOGIC instance")
-                listOf(logicSessions.random())
+                sessionManager.getSession(metadata.routeKey)
             }
 
-            UNKNOWN -> TODO()
+            UNKNOWN -> null
         }
     }
 
@@ -58,8 +50,15 @@ class MessageRouter(private val sessionManager: ServerSessionManager) : Loggable
         if (sessions.isEmpty()) return null
         if (sessions.size == 1) return sessions.first()
 
-        // 构建哈希环
-        val ring = buildHashRing(sessions)
+        // 使用实例列表的签名作为缓存 key
+        val cacheKey = buildCacheKey(sessions)
+
+        // 尝试从缓存获取哈希环
+        val ring = hashRingCache.getOrPut(cacheKey) {
+            logger.debug("构建新的哈希环，实例数量: ${sessions.size}")
+            buildHashRing(sessions)
+        }
+
         if (ring.isEmpty()) return null
 
         // 计算 key 的哈希值
@@ -67,9 +66,17 @@ class MessageRouter(private val sessionManager: ServerSessionManager) : Loggable
 
         // 在环上找到第一个大于等于 keyHash 的节点
         val target =
-                ring.firstOrNull { it.first >= keyHash }?.second ?: ring.first().second // 环形，回到第一个
+            ring.firstOrNull { it.first >= keyHash }?.second ?: ring.first().second // 环形，回到第一个
 
         return target
+    }
+
+    /** 构建缓存 key，使用所有实例 ID 的排序字符串 */
+    private fun buildCacheKey(sessions: Set<ServerSession>): String {
+        return sessions
+            .map { it.instanceId }
+            .sorted()
+            .joinToString(",")
     }
 
     /** 构建一致性哈希环 */
@@ -98,6 +105,9 @@ class MessageRouter(private val sessionManager: ServerSessionManager) : Loggable
 
     /** 清除哈希环缓存（当 Logic 实例变化时调用） */
     fun invalidateCache() {
-        hashRingCache.clear()
+        if (hashRingCache.isNotEmpty()) {
+            logger.info("清除哈希环缓存，缓存条目数: ${hashRingCache.size}")
+            hashRingCache.clear()
+        }
     }
 }

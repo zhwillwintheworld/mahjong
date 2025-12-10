@@ -1,21 +1,22 @@
 package com.sudooom.mahjong.broker.session
 
 import com.sudooom.mahjong.common.annotation.Loggable
-import com.sudooom.mahjong.common.util.IdGenerator
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
 import org.springframework.messaging.rsocket.RSocketRequester
 import org.springframework.stereotype.Component
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 /** 服务器会话管理器 管理所有连接到 Broker 的 Access/Logic 服务会话 */
 @Component
-class ServerSessionManager : Loggable {
+class ServerSessionManager(
+    private val messageRouter: com.sudooom.mahjong.broker.router.MessageRouter
+) : Loggable {
 
     /** 按 requester 索引的会话 */
     private val sessions = ConcurrentHashMap<RSocketRequester, ServerSession>()
 
-    /** 按 sessionId 索引的会话 */
-    private val sessionIdMap = ConcurrentHashMap<String, ServerSession>()
+    /** 按 instanceId 索引的会话 */
+    private val instanceIdMap = ConcurrentHashMap<String, ServerSession>()
 
     /** 按 instanceType 分组的会话（如 ACCESS、LOGIC） */
     private val instanceTypeSessions = ConcurrentHashMap<String, MutableSet<ServerSession>>()
@@ -32,10 +33,8 @@ class ServerSessionManager : Loggable {
             instanceId: String,
             requester: RSocketRequester
     ): ServerSession {
-        val sessionId = IdGenerator.nextIdString()
         val session =
                 ServerSession(
-                        sessionId = sessionId,
                         instanceType = instanceType,
                         instanceId = instanceId,
                         requester = requester,
@@ -43,17 +42,23 @@ class ServerSessionManager : Loggable {
                         lastHeartbeat = Instant.now()
                 )
         sessions[requester] = session
-        sessionIdMap[sessionId] = session
+        instanceIdMap[instanceId] = session
         instanceTypeSessions.getOrPut(instanceType) { ConcurrentHashMap.newKeySet() }.add(session)
+
+        // 如果是 LOGIC 实例，失效路由缓存
+        if (instanceType == "LOGIC") {
+            messageRouter.invalidateCache()
+        }
+
         logger.info(
-                "创建服务器会话: instanceType=$instanceType, instanceId=$instanceId, sessionId=$sessionId"
+            "创建服务器会话: instanceType=$instanceType, instanceId=$instanceId"
         )
         return session
     }
 
-    /** 根据 sessionId 获取会话 */
-    fun getSession(sessionId: String): ServerSession? {
-        return sessionIdMap[sessionId]
+    /** 根据 instanceId 获取会话 */
+    fun getSession(instanceId: String): ServerSession? {
+        return instanceIdMap[instanceId]
     }
 
     /** 根据 requester 获取会话 */
@@ -67,13 +72,19 @@ class ServerSessionManager : Loggable {
     }
 
     /** 移除会话 */
-    fun removeSession(sessionId: String) {
-        val session = sessionIdMap.remove(sessionId)
+    fun removeSession(instanceId: String) {
+        val session = instanceIdMap.remove(instanceId)
         if (session != null) {
             sessions.remove(session.requester)
             instanceTypeSessions[session.instanceType]?.remove(session)
+
+            // 如果是 LOGIC 实例，失效路由缓存
+            if (session.instanceType == "LOGIC") {
+                messageRouter.invalidateCache()
+            }
+
             logger.info(
-                    "移除服务器会话: instanceType=${session.instanceType}, instanceId=${session.instanceId}, sessionId=$sessionId"
+                "移除服务器会话: instanceType=${session.instanceType}, instanceId=${session.instanceId}"
             )
         }
     }
@@ -82,17 +93,23 @@ class ServerSessionManager : Loggable {
     fun removeSession(requester: RSocketRequester) {
         val session = sessions.remove(requester)
         if (session != null) {
-            sessionIdMap.remove(session.sessionId)
+            instanceIdMap.remove(session.instanceId)
             instanceTypeSessions[session.instanceType]?.remove(session)
+
+            // 如果是 LOGIC 实例，失效路由缓存
+            if (session.instanceType == "LOGIC") {
+                messageRouter.invalidateCache()
+            }
+
             logger.info(
-                    "移除服务器会话: instanceType=${session.instanceType}, instanceId=${session.instanceId}, sessionId=${session.sessionId}"
+                "移除服务器会话: instanceType=${session.instanceType}, instanceId=${session.instanceId}"
             )
         }
     }
 
     /** 获取在线服务数量 */
     fun getOnlineCount(): Int {
-        return sessionIdMap.size
+        return instanceIdMap.size
     }
 
     /** 获取指定类型的在线服务数量 */
@@ -102,6 +119,6 @@ class ServerSessionManager : Loggable {
 
     /** 获取所有在线实例 ID */
     fun getOnlineInstanceIds(): Set<String> {
-        return sessionIdMap.values.map { it.instanceId }.toSet()
+        return instanceIdMap.keys
     }
 }

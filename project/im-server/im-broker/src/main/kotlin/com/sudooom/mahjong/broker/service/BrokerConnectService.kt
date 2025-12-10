@@ -53,7 +53,7 @@ class BrokerConnectService(
                 requester = requester
             )
         logger.info(
-            "服务连接成功: instanceType=$instanceType, instanceId=$instanceId, sessionId=${session.sessionId}"
+            "服务连接成功: instanceType=$instanceType, instanceId=$instanceId"
         )
 
         // 监听连接关闭事件
@@ -84,7 +84,7 @@ class BrokerConnectService(
                 ?: throw IllegalArgumentException(
                     "Session not found, please connect first"
                 )
-        logger.debug("消息通道已建立: sessionId=${session.sessionId}")
+        logger.debug("消息通道已建立: instanceId=${session.instanceId}")
 
         // 订阅消息流并分发到目标实例
         messageDispatchService.subscribeAndDispatch(messages, session)

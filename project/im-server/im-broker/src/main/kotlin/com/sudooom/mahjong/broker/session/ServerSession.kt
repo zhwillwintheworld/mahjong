@@ -1,18 +1,14 @@
 package com.sudooom.mahjong.broker.session
 
 import com.sudooom.mahjong.common.annotation.Loggable
-import kotlinx.coroutines.flow.Flow
-import java.time.Instant
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.messaging.Message
 import org.springframework.messaging.rsocket.RSocketRequester
+import java.time.Instant
 
 /** 服务器会话 用于管理与 Access/Logic 服务的连接 */
 data class ServerSession(
-        val sessionId: String,
         val instanceType: String,
         val instanceId: String,
         val requester: RSocketRequester,
