@@ -13,7 +13,9 @@ import reactor.core.publisher.Mono
 
 /** Broker 控制器 处理来自 Access/Logic 服务的 RSocket 请求 */
 @Controller("broker")
-class BrokerController(private val brokerConnectService: BrokerConnectService) {
+class BrokerController(
+    private val brokerConnectService: BrokerConnectService
+) {
 
     /**
      * 处理连接请求 路由: broker.connect

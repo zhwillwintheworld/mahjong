@@ -86,16 +86,16 @@ class MessageDispatchService(
         }
 
         val metadata = RouteMetadata.fromTypeString(routeType, routeKey)
-        val targetSessions = messageRouter.route(metadata)
+        val targetSession = messageRouter.route(metadata)
 
-        if (targetSessions.isEmpty()) {
+        if (targetSession == null) {
             logger.warn("No Logic instances available for routing")
             releaseMessageBuffer(message, "no Logic instances")
             return
         }
 
-        // 发送到所有目标 Logic 实例
-        targetSessions.forEach { session ->
+        // 发送到目标 Logic 实例
+        targetSession.let { session ->
             try {
                 session.sendMessage(message)
                 logger.debug("Message dispatched to Logic: ${session.instanceId}")

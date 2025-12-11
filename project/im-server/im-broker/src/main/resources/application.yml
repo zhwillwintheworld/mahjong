@@ -16,3 +16,16 @@ spring:
       transport: tcp
       port: 8881
 
+# Broker 服务配置
+broker:
+  health-check:
+    enabled: true
+    interval-seconds: 10
+    timeout-seconds: 3
+    max-failure-count: 3
+  warmup:
+    mode: timed
+    duration-seconds: 10
+  drain:
+    timeout-seconds: 60
+

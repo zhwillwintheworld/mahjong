@@ -25,8 +25,8 @@ class MessageRouter(private val sessionManager: ServerSessionManager) : Loggable
      * @return 目标 Logic session 列表（广播时返回多个，其他情况返回单个）
      */
     fun route(metadata: RouteMetadata): ServerSession? {
-        val logicSessions = sessionManager.getSessionsByType("LOGIC")
-        if (logicSessions.isEmpty()) {
+        val onlineLogicSessions = sessionManager.getOnlineLogicSessions()
+        if (onlineLogicSessions.isEmpty()) {
             logger.warn("No LOGIC instances available for routing")
             return null
         }
@@ -34,11 +34,18 @@ class MessageRouter(private val sessionManager: ServerSessionManager) : Loggable
         return when (metadata.type) {
             ROOM, USER -> {
                 // 一致性哈希选择单个实例
-                consistentHash(metadata.routeKey, logicSessions)
+                consistentHash(metadata.routeKey, onlineLogicSessions)
             }
 
             LOGIC -> {
-                sessionManager.getSession(metadata.routeKey)
+                // 直接路由到指定 Logic
+                val session = sessionManager.getSession(metadata.routeKey)
+                if (session?.canAcceptNewRequests() == true) {
+                    session
+                } else {
+                    logger.warn("Target Logic ${metadata.routeKey} is not available")
+                    null
+                }
             }
 
             UNKNOWN -> null

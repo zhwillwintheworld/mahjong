@@ -11,7 +11,6 @@ import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHa
 @Configuration
 class RSocketConfig {
 
-    /** Broker 不需要 protobuf encoder/decoder，使用默认策略即可 */
     @Bean
     fun rSocketStrategies(): RSocketStrategies {
         return RSocketStrategies.builder()

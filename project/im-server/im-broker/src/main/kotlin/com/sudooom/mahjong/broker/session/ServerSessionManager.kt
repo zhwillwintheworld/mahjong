@@ -29,18 +29,18 @@ class ServerSessionManager(
      * @return 创建的会话
      */
     fun createSession(
-            instanceType: String,
-            instanceId: String,
-            requester: RSocketRequester
+        instanceType: String,
+        instanceId: String,
+        requester: RSocketRequester
     ): ServerSession {
         val session =
-                ServerSession(
-                        instanceType = instanceType,
-                        instanceId = instanceId,
-                        requester = requester,
-                        connectedAt = Instant.now(),
-                        lastHeartbeat = Instant.now()
-                )
+            ServerSession(
+                instanceType = instanceType,
+                instanceId = instanceId,
+                requester = requester,
+                connectedAt = Instant.now(),
+                lastHeartbeat = Instant.now()
+            )
         sessions[requester] = session
         instanceIdMap[instanceId] = session
         instanceTypeSessions.getOrPut(instanceType) { ConcurrentHashMap.newKeySet() }.add(session)
@@ -120,5 +120,18 @@ class ServerSessionManager(
     /** 获取所有在线实例 ID */
     fun getOnlineInstanceIds(): Set<String> {
         return instanceIdMap.keys
+    }
+
+    /** 获取所有在线的 Logic 会话 */
+    fun getOnlineLogicSessions(): Set<ServerSession> {
+        return instanceTypeSessions["LOGIC"]
+            ?.filter { it.status == ServiceStatus.ONLINE }
+            ?.toSet()
+            ?: emptySet()
+    }
+
+    /** 获取所有 Logic 会话（无论状态） */
+    fun getAllLogicSessions(): Set<ServerSession> {
+        return instanceTypeSessions["LOGIC"]?.toSet() ?: emptySet()
     }
 }

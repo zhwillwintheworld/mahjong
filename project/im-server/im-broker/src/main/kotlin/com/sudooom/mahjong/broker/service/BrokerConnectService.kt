@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono
 class BrokerConnectService(
     private val sessionManager: ServerSessionManager,
     private val jwtUtil: JwtUtil,
-    private val messageDispatchService: MessageDispatchService,
+    private val messageDispatchService: MessageDispatchService
 ) : Loggable {
 
     /**
@@ -46,12 +46,11 @@ class BrokerConnectService(
 
         logger.info("JWT 验证成功: instanceType=$instanceType, instanceId=$instanceId")
 
-        val session =
-            sessionManager.createSession(
-                instanceType = instanceType,
-                instanceId = instanceId,
-                requester = requester
-            )
+        sessionManager.createSession(
+            instanceType = instanceType,
+            instanceId = instanceId,
+            requester = requester
+        )
         logger.info(
             "服务连接成功: instanceType=$instanceType, instanceId=$instanceId"
         )
