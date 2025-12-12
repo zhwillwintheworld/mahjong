@@ -3,13 +3,12 @@ package com.sudooom.mahjong.logic.service
 import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.common.proto.ClientRequest
 import com.sudooom.mahjong.core.holder.BrokerInboundHolder
+import com.sudooom.mahjong.logic.codec.toClientRequest
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.*
-import org.springframework.core.ResolvableType
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DataBufferUtils
-import org.springframework.http.codec.protobuf.ProtobufDecoder
 import org.springframework.messaging.Message
 import org.springframework.stereotype.Service
 
@@ -23,7 +22,6 @@ class MessageDispatchService(
 ) : Loggable {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val protobufDecoder = ProtobufDecoder()
 
     /**
      * 应用启动后自动开始订阅 BrokerInboundHolder
@@ -53,35 +51,21 @@ class MessageDispatchService(
      */
     private suspend fun dispatchMessage(message: Message<DataBuffer>) {
         val headers = message.headers
-        val sessionId = headers["sessionId"] as? String
-        val originalInstanceId = headers["originalInstanceId"] as? String
+        val userId = headers["userId"] as? String
         val messageType = headers["messageType"] as? String
 
-        if (sessionId == null || originalInstanceId == null) {
-            logger.warn("Missing required headers (sessionId or originalInstanceId), message discarded")
+        if (userId == null || messageType == null) {
+            logger.warn("Missing required headers (userId or messageType), message discarded")
             releaseMessageBuffer(message, "missing headers")
             return
         }
 
         try {
-            // 使用 ProtobufDecoder 解码 DataBuffer 为 ClientRequest
-            // ⚠️ 重要：需要 retain 增加引用计数，因为在异步处理中使用
-            val dataBuffer = DataBufferUtils.retain(message.payload)
-
-            val decodedMessage = protobufDecoder.decode(
-                dataBuffer,
-                ResolvableType.forClass(ClientRequest::class.java),
-                null,
-                null
-            ) as? ClientRequest
+            // 使用零拷贝 codec 解码 DataBuffer 为 ClientRequest
+            val decodedMessage = message.payload.toClientRequest()
 
             // 解码完成后释放 DataBuffer
-            DataBufferUtils.release(dataBuffer)
-
-            if (decodedMessage == null) {
-                logger.warn("Failed to decode message as ClientRequest")
-                return
-            }
+            DataBufferUtils.release(message.payload)
 
             logger.debug("Decoded ClientRequest: reqId=${decodedMessage.reqId}, type=${decodedMessage.payloadCase}")
 

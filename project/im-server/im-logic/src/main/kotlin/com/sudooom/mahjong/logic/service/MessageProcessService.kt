@@ -4,13 +4,9 @@ import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.common.proto.*
 import com.sudooom.mahjong.common.util.IdGenerator
 import com.sudooom.mahjong.core.holder.BrokerOutboundHolder
-import org.springframework.core.ResolvableType
-import org.springframework.core.io.buffer.DataBuffer
-import org.springframework.core.io.buffer.DefaultDataBufferFactory
-import org.springframework.http.codec.protobuf.ProtobufEncoder
+import com.sudooom.mahjong.logic.codec.toDataBuffer
 import org.springframework.messaging.support.MessageBuilder
 import org.springframework.stereotype.Service
-import reactor.core.publisher.Mono
 
 /**
  * 消息处理服务
@@ -18,9 +14,6 @@ import reactor.core.publisher.Mono
  */
 @Service
 class MessageProcessService : Loggable {
-
-    private val protobufEncoder = ProtobufEncoder()
-    private val bufferFactory = DefaultDataBufferFactory()
 
     /**
      * 发送聊天确认响应
@@ -152,8 +145,8 @@ class MessageProcessService : Loggable {
         accessInstanceId: String
     ) {
         try {
-            // 使用 ProtobufEncoder 编码 ClientResponse 为 DataBuffer
-            val dataBuffer = encodeProtobufMessage(response)
+            // 使用零拷贝 codec 编码 ClientResponse 为 DataBuffer
+            val dataBuffer = response.toDataBuffer()
 
             // 构建消息并设置路由元数据
             val message = MessageBuilder.withPayload(dataBuffer)
@@ -169,22 +162,5 @@ class MessageProcessService : Loggable {
         } catch (e: Exception) {
             logger.error("Failed to send response: ${e.message}", e)
         }
-    }
-
-    /**
-     * 编码 protobuf 消息为 DataBuffer
-     */
-    private fun encodeProtobufMessage(message: com.google.protobuf.MessageLite): DataBuffer {
-        val buffer = bufferFactory.allocateBuffer()
-
-        protobufEncoder.encode(
-            Mono.just(message),
-            buffer,
-            ResolvableType.forClass(message::class.java),
-            null,
-            null
-        ).subscribe()
-
-        return buffer
     }
 }
