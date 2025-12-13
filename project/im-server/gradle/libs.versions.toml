@@ -13,6 +13,9 @@ jackson = "2.18.2"
 # JWT
 jjwt = "0.13.0"
 
+# Netty
+netty = "4.1.115.Final"
+
 # Logging
 slf4j = "2.0.17"
 
@@ -35,6 +38,7 @@ kotlin-coroutines-jdk9 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jd
 # Spring Core (最小依赖)
 spring-context = { module = "org.springframework:spring-context" }
 spring-boot = { module = "org.springframework.boot:spring-boot" }
+spring-core = { module = "org.springframework:spring-core" }
 
 # Spring Boot Starters (版本由 Spring Boot 管理)
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
@@ -53,6 +57,9 @@ jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-
 jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
 jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
 jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+
+# Netty - 用于零拷贝 ByteBuf
+netty-buffer = { module = "io.netty:netty-buffer", version.ref = "netty" }
 
 # Logging
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

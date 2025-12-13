@@ -43,11 +43,20 @@ class SessionManager : Loggable {
         return sessions[requester]
     }
 
-    /** 移除会话 */
+    /** 移除会话 - 通过 sessionId */
     fun removeSession(sessionId: String) {
         val session = sessionIdMap.remove(sessionId)
         if (session != null) {
             sessions.remove(session.requester)
+            logger.info("移除会话: userId=${session.userId}, sessionId=${session.sessionId}")
+        }
+    }
+
+    /** 移除会话 - 通过 RSocketRequester */
+    fun removeSession(requester: RSocketRequester) {
+        val session = sessions.remove(requester)
+        if (session != null) {
+            sessionIdMap.remove(session.sessionId)
             logger.info("移除会话: userId=${session.userId}, sessionId=${session.sessionId}")
         }
     }

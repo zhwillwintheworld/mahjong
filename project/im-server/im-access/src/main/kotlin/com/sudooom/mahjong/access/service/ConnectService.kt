@@ -36,7 +36,17 @@ class ConnectService(
                 platform = platform,
                 requester = requester,
             )
-        logger.info("User $userId  SessionId ${session.sessionId}logged in successfully")
+        logger.info("User $userId SessionId ${session.sessionId} logged in successfully")
+
+        // 监听连接关闭事件
+        requester
+            .rsocket()
+            ?.onClose()
+            ?.doOnTerminate {
+                logger.info("User $userId SessionId ${session.sessionId} disconnected")
+                sessionManager.removeSession(requester)
+            }
+            ?.subscribe()
     }
 
     suspend fun message(

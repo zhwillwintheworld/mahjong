@@ -2,19 +2,23 @@ package com.sudooom.mahjong.logic.service
 
 import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.common.proto.ClientRequest
+import com.sudooom.mahjong.common.constant.MessageHeaders
 import com.sudooom.mahjong.core.holder.BrokerInboundHolder
-import com.sudooom.mahjong.logic.codec.toClientRequest
+import com.sudooom.mahjong.common.codec.toClientRequest
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Semaphore
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.messaging.Message
 import org.springframework.stereotype.Service
 
 /**
- * 消息分发服务
- * 从 Broker 接收消息并解码后根据类型分发到对应的处理器
+ * 消息分发服务 - Semaphore 并发控制模式
+ *
+ * 从 Broker 接收消息，解码后根据类型分发到对应的处理器
+ * 使用 Semaphore 限制并发数，充分利用 CPU 资源同时避免过载
  */
 @Service
 class MessageDispatchService(
@@ -23,27 +27,40 @@ class MessageDispatchService(
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // 并发限制 = CPU 核心数 * 2
+    private val concurrencyLimit = Runtime.getRuntime().availableProcessors() * 2
+    private val semaphore = Semaphore(concurrencyLimit)
+
     /**
      * 应用启动后自动开始订阅 BrokerInboundHolder
+     * 使用 Semaphore 控制并发数
      */
     @PostConstruct
     fun startDispatching() {
-        logger.info("Starting message dispatch service...")
+        logger.info("Starting logic message dispatch service with concurrency limit: $concurrencyLimit")
 
         scope.launch {
             BrokerInboundHolder.asFlow()
                 .collect { message ->
-                    try {
-                        dispatchMessage(message)
-                    } catch (e: Exception) {
-                        logger.error("Failed to dispatch message: ${e.message}", e)
-                        // 如果分发失败，需要释放 DataBuffer
-                        releaseMessageBuffer(message, "dispatch failed")
+                    // 获取许可（如果超过限制会挂起等待）
+                    semaphore.acquire()
+
+                    // 每条消息启动独立协程处理
+                    launch {
+                        try {
+                            dispatchMessage(message)
+                        } catch (e: Exception) {
+                            logger.error("Failed to dispatch message: ${e.message}", e)
+                            releaseMessageBuffer(message, "dispatch failed")
+                        } finally {
+                            // 释放许可
+                            semaphore.release()
+                        }
                     }
                 }
         }
 
-        logger.info("Message dispatch service started successfully")
+        logger.info("Logic message dispatch service started successfully")
     }
 
     /**
@@ -51,11 +68,11 @@ class MessageDispatchService(
      */
     private suspend fun dispatchMessage(message: Message<DataBuffer>) {
         val headers = message.headers
-        val userId = headers["userId"] as? String
-        val messageType = headers["messageType"] as? String
+        val userId = headers[MessageHeaders.USER_ID] as? String
+        val messageType = headers[MessageHeaders.MESSAGE_TYPE] as? String
 
-        if (userId == null || messageType == null) {
-            logger.warn("Missing required headers (userId or messageType), message discarded")
+        if (userId == null || sessionId == null || accessInstanceId == null) {
+            logger.warn("Missing required headers (userId, sessionId or accessInstanceId), message discarded")
             releaseMessageBuffer(message, "missing headers")
             return
         }
@@ -72,19 +89,19 @@ class MessageDispatchService(
             // 根据消息类型分发
             when (decodedMessage.payloadCase) {
                 ClientRequest.PayloadCase.CHAT_SEND -> {
-                    handleChatMessage(decodedMessage, sessionId, originalInstanceId)
+                    handleChatMessage(decodedMessage, sessionId, accessInstanceId)
                 }
 
                 ClientRequest.PayloadCase.ROOM -> {
-                    handleRoomMessage(decodedMessage, sessionId, originalInstanceId)
+                    handleRoomMessage(decodedMessage, sessionId, accessInstanceId)
                 }
 
                 ClientRequest.PayloadCase.GAME -> {
-                    handleGameMessage(decodedMessage, sessionId, originalInstanceId)
+                    handleGameMessage(decodedMessage, sessionId, accessInstanceId)
                 }
 
                 ClientRequest.PayloadCase.HEARTBEAT -> {
-                    handleHeartbeat(decodedMessage, sessionId, originalInstanceId)
+                    handleHeartbeat(decodedMessage, sessionId, accessInstanceId)
                 }
 
                 else -> {

@@ -10,26 +10,32 @@ plugins {
 dependencies {
     // Kotlin 核心
     api(libs.bundles.kotlin)
-    
+
     // Spring 最小依赖 - 用于 @Component 和 @Value 注解
     api(libs.spring.context)
     api(libs.spring.boot)
     api(libs.protobuf.java)
     api(libs.protobuf.kotlin)
-    
+
     // Jackson Kotlin - JSON 序列化
     api(libs.jackson.module.kotlin)
-    
+
     // JWT - Token 生成和验证
     api(libs.bundles.jwt)
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)
-    
+
     // 工具类
     implementation(libs.commons.lang3)
-    
+
     // SLF4J - 日志接口（不依赖具体实现）
     api(libs.slf4j.api)
+
+    // Netty - 用于 codec 包的零拷贝 ByteBuf
+    api(libs.netty.buffer)
+
+    // Spring Core IO - 用于 codec 包的 DataBuffer
+    api(libs.spring.core)
 }
 
 dependencyManagement {

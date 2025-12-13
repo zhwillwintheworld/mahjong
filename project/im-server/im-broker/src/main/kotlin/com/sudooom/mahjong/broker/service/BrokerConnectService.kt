@@ -1,13 +1,20 @@
 package com.sudooom.mahjong.broker.service
 
+import com.sudooom.mahjong.broker.holder.BrokerInboundHolder
 import com.sudooom.mahjong.broker.session.ServerSessionManager
 import com.sudooom.mahjong.common.annotation.Loggable
+import com.sudooom.mahjong.common.constant.MessageHeaders
 import com.sudooom.mahjong.common.util.JwtUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.messaging.Message
 import org.springframework.messaging.rsocket.RSocketRequester
+import org.springframework.messaging.support.MessageBuilder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -16,8 +23,9 @@ import reactor.core.publisher.Mono
 class BrokerConnectService(
     private val sessionManager: ServerSessionManager,
     private val jwtUtil: JwtUtil,
-    private val messageDispatchService: MessageDispatchService
 ) : Loggable {
+
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     /**
      * 处理连接请求
@@ -70,6 +78,8 @@ class BrokerConnectService(
 
     /**
      * 处理消息通道
+     * 将消息注入 instanceType header 后发布到统一的 BrokerInboundHolder
+     *
      * @param messages 输入消息流
      * @param requester RSocket 请求器
      * @return 输出消息流
@@ -83,11 +93,34 @@ class BrokerConnectService(
                 ?: throw IllegalArgumentException(
                     "Session not found, please connect first"
                 )
+
         logger.debug("消息通道已建立: instanceId=${session.instanceId}")
 
-        // 订阅消息流并分发到目标实例
-        messageDispatchService.subscribeAndDispatch(messages, session)
+        // 将 instanceType 压缩值
+        val instanceTypeValue = when (session.instanceType) {
+            "ACCESS" -> MessageHeaders.InstanceType.ACCESS
+            "LOGIC" -> MessageHeaders.InstanceType.LOGIC
+            else -> session.instanceType
+        }
+
+        // 订阅消息流，注入 instanceType 和 fromInstanceId，然后发布到统一的 InboundHolder
+        scope.launch {
+            messages.collect { message ->
+                // 注入必要的 header 信息
+                val enrichedMessage = MessageBuilder
+                    .fromMessage(message)
+                    .setHeader(MessageHeaders.INSTANCE_TYPE, instanceTypeValue)
+                    .setHeader(MessageHeaders.FROM_INSTANCE_ID, session.instanceId)
+                    .build()
+
+                // 发布到统一入站流
+                if (!BrokerInboundHolder.publish(enrichedMessage)) {
+                    logger.warn("InboundHolder buffer full, message dropped")
+                }
+            }
+        }
 
         return session.getMessageFlow()
     }
 }
+

@@ -3,8 +3,9 @@ package com.sudooom.mahjong.logic.service
 import com.sudooom.mahjong.common.annotation.Loggable
 import com.sudooom.mahjong.common.proto.*
 import com.sudooom.mahjong.common.util.IdGenerator
+import com.sudooom.mahjong.common.constant.MessageHeaders
 import com.sudooom.mahjong.core.holder.BrokerOutboundHolder
-import com.sudooom.mahjong.logic.codec.toDataBuffer
+import com.sudooom.mahjong.common.codec.toDataBuffer
 import org.springframework.messaging.support.MessageBuilder
 import org.springframework.stereotype.Service
 
@@ -148,10 +149,10 @@ class MessageProcessService : Loggable {
             // 使用零拷贝 codec 编码 ClientResponse 为 DataBuffer
             val dataBuffer = response.toDataBuffer()
 
-            // 构建消息并设置路由元数据
+            // 构建消息并设置路由元数据（使用常量）
             val message = MessageBuilder.withPayload(dataBuffer)
-                .setHeader("sessionId", sessionId)
-                .setHeader("accessInstanceId", accessInstanceId)
+                .setHeader(MessageHeaders.SESSION_ID, sessionId)
+                .setHeader(MessageHeaders.ACCESS_INSTANCE_ID, accessInstanceId)
                 .build()
 
             // 发送到 Broker
@@ -164,3 +165,4 @@ class MessageProcessService : Loggable {
         }
     }
 }
+

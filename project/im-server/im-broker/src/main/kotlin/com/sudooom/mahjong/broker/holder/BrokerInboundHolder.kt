@@ -1,4 +1,4 @@
-package com.sudooom.mahjong.core.holder
+package com.sudooom.mahjong.broker.holder
 
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -8,27 +8,31 @@ import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.messaging.Message
 
 /**
- * Broker 消息接收 Holder（单例）
+ * Broker 入站消息 Holder（单例）
  *
- * Access/Logic 模块通过这个 holder 订阅来自 Broker 的消息
+ * 汇聚来自所有 Access/Logic 连接的消息到统一的 SharedFlow
+ * 消息处理器订阅此 Flow 统一处理，不关心消息来自哪个具体连接
+ *
  * 背压策略：buffer 满时丢弃消息并释放 DataBuffer
  */
 object BrokerInboundHolder {
 
     private val inboundFlow =
-        MutableSharedFlow<Message<DataBuffer>>(replay = 0, extraBufferCapacity = 1024)
+        MutableSharedFlow<Message<DataBuffer>>(replay = 0, extraBufferCapacity = 4096)
 
-    /** 获取只读的 SharedFlow，供外部订阅消费 */
+    /**
+     * 获取只读的 SharedFlow，供 MessageDispatchService 订阅消费
+     */
     fun asFlow(): SharedFlow<Message<DataBuffer>> = inboundFlow.asSharedFlow()
 
     /**
-     * 发布从 Broker 接收到的消息
+     * 发布消息到入站流
      *
-     * 背压处理：如果 buffer 满，释放 DataBuffer 并返回 false
+     * 背压处理：如果 buffer 已满，会释放 DataBuffer 并返回 false
      *
      * @return true 成功发布, false buffer 满导致丢弃
      */
-    internal fun publish(message: Message<DataBuffer>): Boolean {
+    fun publish(message: Message<DataBuffer>): Boolean {
         val success = inboundFlow.tryEmit(message)
         if (!success) {
             // ⚠️ 背压处理：释放 DataBuffer 防止内存泄漏
